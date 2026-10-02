@@ -9,7 +9,8 @@
 <body>
   <header id="topbar">
     <div class="tb-left">
-      <strong class="logo">▦ Website Builder</strong>
+      <button class="icon-btn only-small" id="toggle-left" title="Pages & components" aria-label="Pages and components">☰</button>
+      <strong class="logo">▦ <span class="logo-text">Website Builder</span></strong>
       <input id="project-name" class="tb-name" aria-label="Project name">
     </div>
     <div class="tb-center">
@@ -21,12 +22,14 @@
       <button class="icon-btn" id="redo" title="Redo (Ctrl+Shift+Z)">↷</button>
     </div>
     <div class="tb-right">
+      <button class="icon-btn only-small" id="toggle-right" title="Inspector" aria-label="Inspector">⚙</button>
       <button class="btn" id="preview">👁 Preview</button>
       <div class="menu">
         <button class="btn primary" id="export-menu-btn">Export ▾</button>
         <div class="menu-list" id="export-menu" hidden>
           <button data-export="page">Current page (.html)</button>
-          <button data-export="all">All pages (.html)</button>
+          <button data-export="zip">Website (.zip, all pages + theme)</button>
+          <button data-export="all">All pages (.html files)</button>
           <button data-export="theme">Theme (theme.css)</button>
           <button data-export="json">Project (.json)</button>
           <hr>
@@ -63,9 +66,11 @@
     <textarea id="modal-text" spellcheck="false"></textarea>
     <div class="modal-actions"><button class="btn" value="cancel">Cancel</button><button class="btn primary" id="modal-ok" value="ok">Apply</button></div>
   </form></dialog>
+  <div id="drawer-backdrop"></div>
   <div id="toast" hidden></div>
 
   <script src="src/components.js"></script>
+  <script src="src/templates.js"></script>
   <script src="src/theme-presets.js"></script>
   <script src="src/builder.js"></script>
 </body>

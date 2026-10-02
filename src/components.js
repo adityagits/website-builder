@@ -17,7 +17,7 @@
   WB.placeholder = ph;
 
   WB.categories = [
-    "Navigation", "Hero", "Content", "Features", "Social proof", "Conversion", "Footer", "Layout",
+    "Navigation", "Hero", "Content", "Features", "Social proof", "Conversion", "Contact", "Blog", "E-commerce", "Footer", "Layout",
   ];
 
   const C = [];
@@ -26,6 +26,7 @@
   add("navbar", "Navbar", "Navigation", "☰", () => `
 <header class="wb-section wb-nav" data-pad="none"><div class="wb-container">
   <a class="wb-nav__brand" href="index.html">Brand</a>
+  <button class="wb-nav__toggle" type="button" data-wb-nav-toggle aria-label="Toggle menu" aria-expanded="false">☰</button>
   <ul class="wb-nav__links">
     <li><a href="index.html">Home</a></li>
     <li><a href="#features">Features</a></li>
@@ -230,6 +231,205 @@
   add("divider", "Divider", "Layout", "―", () => `<section class="wb-section" data-pad="sm"><div class="wb-container"><hr class="wb-divider"></div></section>`);
   add("html", "Custom HTML", "Layout", "</>", () => `
 <section class="wb-section" data-pad="sm"><div class="wb-container"><div class="wb-editable"><p>Custom block — use “Edit HTML” in the inspector to paste your own markup.</p></div></div></section>`);
+
+
+  /* ---- Navigation extras ---- */
+  add("announce", "Announcement bar", "Navigation", "📣", () => `
+<div class="wb-section wb-announce" data-pad="none"><div class="wb-container"><p>🎉 Launch offer: get 20% off your first year. <a href="#pricing">Claim it →</a></p></div></div>`);
+
+  add("breadcrumbs", "Breadcrumbs", "Navigation", "›", () => `
+<nav class="wb-section" data-pad="none" aria-label="Breadcrumb"><div class="wb-container" style="padding-block:14px"><p class="wb-small wb-muted" style="margin:0"><a href="index.html">Home</a> › <a href="#">Section</a> › Current page</p></div></nav>`);
+
+  /* ---- Hero extras ---- */
+  add("hero-form", "Hero · With form", "Hero", "▤", () => `
+<section class="wb-section wb-hero" data-bg="alt" data-pad="lg"><div class="wb-container wb-split">
+  <div><span class="wb-eyebrow">Free trial</span><h1>Start your 14-day free trial</h1><p class="wb-lead">No credit card required. Cancel any time.</p></div>
+  <form class="wb-card wb-form" action="#" method="post"><label>Full name<input type="text" placeholder="Your name"></label><label>Work email<input type="email" placeholder="you@company.com"></label><button class="wb-btn" type="submit">Create account</button></form>
+</div></section>`);
+
+  add("hero-video", "Hero · Video", "Hero", "🎬", () => `
+<section class="wb-section wb-hero wb-hero--center" data-pad="lg"><div class="wb-container">
+  <h1>See it in action</h1><p class="wb-lead">A two-minute walkthrough of everything the product can do.</p>
+  <div class="wb-video" style="margin-top:2rem"><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Product video" allowfullscreen loading="lazy"></iframe></div>
+</div></section>`);
+
+  /* ---- Content extras ---- */
+  add("columns", "Columns (2–4)", "Layout", "▥", () => `
+<section class="wb-section"><div class="wb-container"><div class="wb-cols" data-cols="3">
+  <div><h3>Column one</h3><p>Write anything here. Change the column count with the inspector or Edit HTML (data-cols).</p></div>
+  <div><h3>Column two</h3><p>Columns stack on mobile automatically.</p></div>
+  <div><h3>Column three</h3><p>Use them for text, lists or buttons.</p></div>
+</div></div></section>`);
+
+  add("tabs", "Tabs", "Content", "⊟", () => `
+<section class="wb-section"><div class="wb-container"><div class="wb-tabs">
+  <div class="wb-tabs__list" role="tablist"><button class="is-active" type="button" role="tab">Overview</button><button type="button" role="tab">Details</button><button type="button" role="tab">Support</button></div>
+  <div class="wb-tabs__panel is-active"><h3>Overview</h3><p>A short summary of the topic. Click tab labels to edit them.</p></div>
+  <div class="wb-tabs__panel"><h3>Details</h3><p>The specifics, specifications or longer explanation go here.</p></div>
+  <div class="wb-tabs__panel"><h3>Support</h3><p>How customers can reach you for help.</p></div>
+</div></div></section>`);
+
+  add("timeline", "Timeline", "Content", "⏳", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container">
+  <div class="wb-header"><h2>Our journey</h2></div>
+  <div class="wb-timeline">
+    <div><span class="wb-eyebrow">2022</span><h3>The idea</h3><p>Where it all began.</p></div>
+    <div><span class="wb-eyebrow">2024</span><h3>First launch</h3><p>We shipped version one to early customers.</p></div>
+    <div><span class="wb-eyebrow">2026</span><h3>Going global</h3><p>Thousands of teams now rely on us.</p></div>
+  </div>
+</div></section>`);
+
+  add("table", "Table", "Content", "▦", () => `
+<section class="wb-section"><div class="wb-container"><div class="wb-table-wrap"><table class="wb-table">
+  <thead><tr><th>Feature</th><th>Starter</th><th>Pro</th><th>Business</th></tr></thead>
+  <tbody><tr><td>Websites</td><td>1</td><td>10</td><td>Unlimited</td></tr><tr><td>Support</td><td>Community</td><td>Priority</td><td>Dedicated</td></tr><tr><td>Custom themes</td><td>—</td><td>✓</td><td>✓</td></tr></tbody>
+</table></div></div></section>`);
+
+  add("quote", "Pull quote", "Content", "❞", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container"><blockquote class="wb-pullquote">Design is not just what it looks like. Design is how it works.<cite>— Someone wise</cite></blockquote></div></section>`);
+
+  add("code", "Code block", "Content", "{ }", () => `
+<section class="wb-section" data-pad="sm" data-width="narrow"><div class="wb-container"><pre class="wb-code wb-editable">npm install my-package
+
+import { hello } from "my-package";
+hello("world");</pre></div></section>`);
+
+  add("compare", "Comparison table", "Features", "⇄", () => `
+<section class="wb-section" data-bg="alt"><div class="wb-container">
+  <div class="wb-header"><h2>Why choose us</h2></div>
+  <div class="wb-table-wrap" style="background:var(--wb-bg)"><table class="wb-table"><thead><tr><th></th><th>Us</th><th>Others</th></tr></thead>
+  <tbody><tr><td>Setup time</td><td>Minutes</td><td>Days</td></tr><tr><td>Lock-in</td><td>None</td><td>Yes</td></tr><tr><td>Price</td><td>Fair</td><td>High</td></tr></tbody></table></div>
+</div></section>`);
+
+  add("icon-list", "Icon list", "Features", "☑", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container">
+  <h2>What's included</h2>
+  <ul class="wb-hours" style="padding:0"><li><span>✅ Unlimited pages</span></li><li><span>✅ Free SSL &amp; hosting guide</span></li><li><span>✅ Responsive design</span></li><li><span>✅ Theme editor</span></li></ul>
+</div></section>`);
+
+  add("bento", "Bento grid", "Features", "▩", () => `
+<section class="wb-section"><div class="wb-container"><div class="wb-grid" data-cols="3">
+  <div class="wb-card" style="grid-column:span 2"><span class="wb-icon">✨</span><h3>Big feature</h3><p>Give your most important feature the most space.</p></div>
+  <div class="wb-card"><span class="wb-icon">⚙</span><h3>Small one</h3><p>Short supporting point.</p></div>
+  <div class="wb-card"><span class="wb-icon">🔔</span><h3>Small two</h3><p>Another supporting point.</p></div>
+  <div class="wb-card" style="grid-column:span 2"><span class="wb-icon">🌍</span><h3>Wide feature</h3><p>Another highlight spanning two columns.</p></div>
+</div></div></section>`);
+
+  /* ---- Social proof extras ---- */
+  add("testimonial-carousel", "Testimonial carousel", "Social proof", "⇆", () => `
+<section class="wb-section" data-bg="alt"><div class="wb-container" data-wb-carousel>
+  <div class="wb-header"><h2>What people say</h2></div>
+  <div class="wb-carousel"><div class="wb-carousel__track">
+    ${["Priya S.", "Daniel K.", "Mei L.", "Omar R."].map((n, i) => `<figure class="wb-card wb-quote"><div class="wb-stars">★★★★★</div><blockquote>“Fantastic experience from start to finish. Highly recommended.”</blockquote><div class="wb-person"><img class="wb-avatar" src="${avatar(n[0], ["#e0e7ff", "#fce7f3", "#dcfce7", "#fef3c7"][i])}" alt="${n}"><p><strong>${n}</strong></p></div></figure>`).join("\n    ")}
+  </div>
+  <div class="wb-carousel__nav"><button type="button" data-dir="-1" aria-label="Previous">←</button><button type="button" data-dir="1" aria-label="Next">→</button></div></div>
+</div></section>`);
+
+  add("rating", "Rating summary", "Social proof", "★", () => `
+<section class="wb-section" data-pad="sm"><div class="wb-container"><div class="wb-rating"><strong>4.9</strong><div><div class="wb-stars">★★★★★</div><p class="wb-muted" style="margin:0">Based on 2,400+ reviews</p></div></div></div></section>`);
+
+  add("case-studies", "Case studies", "Social proof", "▣", () => `
+<section class="wb-section"><div class="wb-container">
+  <div class="wb-header"><span class="wb-eyebrow">Case studies</span><h2>Real results</h2></div>
+  <div class="wb-grid" data-cols="3">
+    ${["Acme Co.", "Globex", "Initech"].map((n, i) => `<article class="wb-card wb-case"><img src="${ph(640, 400, n, ["#e0e7ff", "#dcfce7", "#fce7f3"][i], "#c7d2fe")}" alt="${n}"><div class="wb-case__body"><span class="wb-badge">+${(i + 2) * 40}% growth</span><h3 style="margin-top:.75rem">${n}</h3><p class="wb-muted">How they achieved more with less effort.</p><a href="#">Read story →</a></div></article>`).join("\n    ")}
+  </div>
+</div></section>`);
+
+  add("awards", "Awards & badges", "Social proof", "🏆", () => `
+<section class="wb-section" data-pad="sm" data-align="center"><div class="wb-container"><div class="wb-logos"><span class="wb-badge">🏆 Best Product 2026</span><span class="wb-badge">⭐ Top Rated</span><span class="wb-badge">🔒 SOC 2</span><span class="wb-badge">🌱 Carbon neutral</span></div></div></section>`);
+
+  /* ---- Conversion extras ---- */
+  add("countdown", "Countdown", "Conversion", "⏱", () => `
+<section class="wb-section" data-bg="dark" data-align="center"><div class="wb-container">
+  <h2>Big launch in…</h2>
+  <div class="wb-countdown" data-wb-countdown="2027-01-01T00:00:00"><div><strong data-u="d">00</strong><span>Days</span></div><div><strong data-u="h">00</strong><span>Hours</span></div><div><strong data-u="m">00</strong><span>Minutes</span></div><div><strong data-u="s">00</strong><span>Seconds</span></div></div>
+  <div class="wb-actions"><a class="wb-btn" href="#">Notify me</a></div>
+</div></section>`);
+
+  add("pricing-toggle", "Pricing · Monthly/Yearly", "Conversion", "⇋", () => `
+<section class="wb-section" data-align="center"><div class="wb-container wb-pricing" data-period="month">
+  <div class="wb-header" style="margin-bottom:1.5rem"><h2>Choose your plan</h2></div>
+  <div class="wb-billing"><button type="button" class="is-active" data-period="month">Monthly</button><button type="button" data-period="year">Yearly (save 20%)</button></div>
+  <div class="wb-grid" data-cols="3" style="text-align:left">
+    ${[["Starter", 9, 86], ["Pro", 19, 182], ["Business", 49, 470]].map(([n, m, y], i) => `<div class="wb-card wb-price${i === 1 ? " wb-price--featured" : ""}"><h3>${n}</h3><div class="wb-price__amount"><span data-month>$${m}<small>/mo</small></span><span data-year>$${y}<small>/yr</small></span></div><ul><li>Feature one</li><li>Feature two</li><li>Feature three</li></ul><a class="wb-btn ${i === 1 ? "" : "wb-btn--outline "}wb-btn--block" href="#">Choose ${n}</a></div>`).join("\n    ")}
+  </div>
+</div></section>`);
+
+  add("multistep-form", "Multi-step form", "Conversion", "➊", () => `
+<section class="wb-section" data-bg="alt" data-width="narrow"><div class="wb-container">
+  <div class="wb-header"><h2>Get a quote</h2></div>
+  <form class="wb-card wb-multistep" action="#" method="post" onsubmit="return false">
+    <div class="wb-steps-dots"><i class="is-done"></i><i></i><i></i></div>
+    <div class="wb-step is-active"><h3>Step 1 · About you</h3><label class="wb-form">Name<input type="text" placeholder="Your name"></label><div class="wb-step__nav"><span></span><button class="wb-btn" type="button" data-wb-step="1">Next</button></div></div>
+    <div class="wb-step"><h3>Step 2 · Your project</h3><label class="wb-form">Describe it<textarea rows="3" placeholder="Tell us more"></textarea></label><div class="wb-step__nav"><button class="wb-btn wb-btn--ghost" type="button" data-wb-step="-1">Back</button><button class="wb-btn" type="button" data-wb-step="1">Next</button></div></div>
+    <div class="wb-step"><h3>Step 3 · Contact</h3><label class="wb-form">Email<input type="email" placeholder="you@example.com"></label><div class="wb-step__nav"><button class="wb-btn wb-btn--ghost" type="button" data-wb-step="-1">Back</button><button class="wb-btn" type="submit">Send</button></div></div>
+  </form>
+</div></section>`);
+
+  add("lead-magnet", "Lead-magnet banner", "Conversion", "📘", () => `
+<section class="wb-section" data-bg="primary"><div class="wb-container wb-split">
+  <div><h2>Free guide: 10 tips for a better website</h2><p class="wb-lead">Download the checklist our customers use to launch faster.</p><div class="wb-actions"><a class="wb-btn" href="#">Download free</a></div></div>
+  <img class="wb-media" src="${ph(560, 380, "eBook", "#ffffff", "#c7d2fe")}" alt="Guide cover">
+</div></section>`);
+
+  /* ---- Contact ---- */
+  add("map", "Map embed", "Contact", "📍", () => `
+<section class="wb-section"><div class="wb-container"><div class="wb-map"><iframe src="https://www.google.com/maps?q=New+York&output=embed" title="Map" loading="lazy"></iframe></div></div></section>`);
+
+  add("hours", "Opening hours", "Contact", "🕒", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container"><h2>Opening hours</h2>
+  <ul class="wb-hours"><li><span>Monday – Friday</span><span>9:00 – 18:00</span></li><li><span>Saturday</span><span>10:00 – 14:00</span></li><li><span>Sunday</span><span>Closed</span></li></ul>
+</div></section>`);
+
+  add("social", "Social links", "Contact", "@", () => `
+<section class="wb-section" data-pad="sm" data-align="center"><div class="wb-container"><ul class="wb-social"><li><a href="#">Facebook</a></li><li><a href="#">Instagram</a></li><li><a href="#">X / Twitter</a></li><li><a href="#">LinkedIn</a></li><li><a href="#">YouTube</a></li></ul></div></section>`);
+
+  /* ---- Blog ---- */
+  add("post-list", "Post list", "Blog", "📰", () => `
+<section class="wb-section"><div class="wb-container">
+  <div class="wb-header"><span class="wb-eyebrow">Blog</span><h2>Latest articles</h2></div>
+  <div class="wb-grid" data-cols="3">
+    ${["Getting started", "Design tips", "Product news"].map((t, i) => `<article class="wb-post"><img src="${ph(640, 400, t, ["#e0e7ff", "#fef3c7", "#dcfce7"][i], "#c7d2fe")}" alt="${t}"><p class="wb-small wb-muted">Oct ${i + 1}, 2026 · 4 min read</p><h3>${t}</h3><p class="wb-muted">A short teaser that makes readers want to click through to the full post.</p><a href="#">Read more →</a></article>`).join("\n    ")}
+  </div>
+</div></section>`);
+
+  add("post-card", "Featured post", "Blog", "📄", () => `
+<section class="wb-section"><div class="wb-container wb-split">
+  <img class="wb-media" src="${ph(720, 480, "Featured")}" alt="Featured post">
+  <article><span class="wb-badge">Featured</span><h2 style="margin-top:1rem">The headline of your featured article</h2><p class="wb-muted wb-small">Oct 2, 2026 · 6 min read</p><p>An intro paragraph that summarises the post and invites the reader to continue.</p><div class="wb-actions"><a class="wb-btn" href="#">Read article</a></div></article>
+</div></section>`);
+
+  add("author", "Author box", "Blog", "✍", () => `
+<section class="wb-section" data-pad="sm" data-width="narrow"><div class="wb-container"><div class="wb-card wb-author"><img class="wb-avatar" src="${avatar("A", "#e0e7ff")}" alt="Author"><div><p><strong>Written by Alex Doe</strong></p><p class="wb-muted">Writer and designer sharing practical tips for building on the web.</p></div></div></div></section>`);
+
+  /* ---- E-commerce ---- */
+  add("product-grid", "Product grid", "E-commerce", "🛍", () => `
+<section class="wb-section"><div class="wb-container">
+  <div class="wb-header"><h2>Featured products</h2></div>
+  <div class="wb-grid" data-cols="4">
+    ${[["Classic tee", "$24", "$30"], ["Canvas tote", "$18", ""], ["Ceramic mug", "$14", ""], ["Sneakers", "$79", "$95"]].map(([n, pr, old], i) => `<div class="wb-product"><img src="${ph(480, 480, n, ["#e0e7ff", "#fef3c7", "#dcfce7", "#fce7f3"][i], "#c7d2fe")}" alt="${n}"><h3>${n}</h3><div class="wb-product__price">${pr}${old ? `<s>${old}</s>` : ""}</div><a class="wb-btn wb-btn--outline" href="#">Add to cart</a></div>`).join("\n    ")}
+  </div>
+</div></section>`);
+
+  add("product-detail", "Product detail", "E-commerce", "🧾", () => `
+<section class="wb-section"><div class="wb-container wb-split">
+  <img class="wb-media" src="${ph(640, 640, "Product")}" alt="Product">
+  <div><span class="wb-badge">In stock</span><h1 style="font-size:2.2rem;margin-top:1rem">Product name</h1><div class="wb-stars">★★★★★ <span class="wb-muted wb-small">(128 reviews)</span></div><p class="wb-product__price" style="font-size:1.8rem;margin-top:1rem">$49.00</p><p class="wb-muted">A concise description of the product, its materials and what makes it special.</p><div class="wb-actions"><a class="wb-btn" href="#">Add to cart</a><a class="wb-btn wb-btn--ghost" href="#">Wishlist</a></div></div>
+</div></section>`);
+
+  add("categories", "Category cards", "E-commerce", "▤", () => `
+<section class="wb-section" data-bg="alt"><div class="wb-container"><div class="wb-grid" data-cols="3">
+  ${["Women", "Men", "Accessories"].map((n, i) => `<a class="wb-category" href="#" style="text-decoration:none"><img src="${ph(480, 600, " ", ["#6366f1", "#0ea5e9", "#f59e0b"][i], "#1e293b")}" alt="${n}"><h3>${n}</h3></a>`).join("\n  ")}
+</div></div></section>`);
+
+  add("cart-summary", "Cart summary", "E-commerce", "🛒", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container"><div class="wb-card"><h3>Order summary</h3>
+  <ul class="wb-hours"><li><span>Classic tee × 2</span><span>$48.00</span></li><li><span>Shipping</span><span>$5.00</span></li><li><strong>Total</strong><strong>$53.00</strong></li></ul>
+  <a class="wb-btn wb-btn--block" href="#" style="margin-top:1.25rem">Checkout</a></div></div></section>`);
+
+  add("sidebar-layout", "Content + sidebar", "Layout", "◨", () => `
+<section class="wb-section"><div class="wb-container wb-sidebar-layout"><div><h2>Main content</h2><p>Your article or page content goes here.</p></div><aside class="wb-card"><h3>Sidebar</h3><p class="wb-muted">Links, widgets or a short bio.</p></aside></div></section>`);
 
   WB.components = C;
   WB.componentById = Object.fromEntries(C.map((c) => [c.id, c]));

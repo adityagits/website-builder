@@ -1,7 +1,7 @@
 /* Website Builder core: pages, components, canvas editing, theme, inspector, export. */
 (function () {
   "use strict";
-  const { components: COMPONENTS, componentById: BY_ID, categories: CATEGORIES, presets: PRESETS } = window.WB;
+  const { components: COMPONENTS, componentById: BY_ID, categories: CATEGORIES, presets: PRESETS, templates: TEMPLATES } = window.WB;
   const STORE = "wb-project-v1";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -10,7 +10,8 @@
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
   /* ---------------------------------------------------------------- data */
-  const EDITABLE = "h1,h2,h3,h4,h5,h6,p,li,a,button,summary,blockquote,figcaption,label,td,th,.wb-editable,.wb-logos span";
+  const EDITABLE = "h1,h2,h3,h4,h5,h6,p,li,a,button,summary,blockquote,figcaption,label,td,th,.wb-editable,.wb-logos span,cite,.wb-badge,.wb-eyebrow,.wb-stat strong,[data-month],[data-year],.wb-product__price";
+  const NOEDIT = ".wb-nav__toggle,[data-dir],[data-u]";
   const THEME_FIELDS = [
     { group: "Colors", var: "--wb-primary", label: "Primary", type: "color" },
     { var: "--wb-primary-contrast", label: "Text on primary", type: "color" },
@@ -41,7 +42,13 @@
   const GOOGLE = FONTS.slice(2).map(([n]) => n);
 
   const newPage = (name, slug) => ({ id: uid(), name, slug, title: name, description: "", blocks: [] });
-  const makeBlock = (type) => ({ id: uid(), type, html: BY_ID[type].html().trim() });
+  const LIB = "wb-library-v1";
+  const getLib = () => { try { return JSON.parse(localStorage.getItem(LIB)) || []; } catch (e) { return []; } };
+  const setLib = (l) => { try { localStorage.setItem(LIB, JSON.stringify(l)); } catch (e) {} };
+  function makeBlock(type) {
+    if (type.startsWith("lib:")) { const it = getLib().find((x) => x.id === type.slice(4)); return { id: uid(), type: "saved", html: it ? it.html : "" }; }
+    return { id: uid(), type, html: BY_ID[type].html().trim() };
+  }
   function defaultProject() {
     const home = newPage("Home", "index");
     home.blocks = ["navbar", "hero-split", "features-grid", "testimonials", "cta", "footer"].map(makeBlock);
@@ -91,7 +98,7 @@
   });
   frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="theme/theme.css"><link rel="stylesheet" href="builder/canvas.css">
-<link id="gf" rel="stylesheet"><style id="theme-vars"></style><style id="custom-css"></style></head><body><div id="wb-root"></div></body></html>`;
+<link id="gf" rel="stylesheet"><style id="theme-vars"></style><style id="custom-css"></style></head><body><div id="wb-root"></div><script src="theme/theme.js"><\/script></body></html>`;
 
   const themeVars = () => state.project.theme || (state.project.theme = {});
   const varValue = (v) => themeVars()[v] ?? themeDefaults[v] ?? "";
@@ -130,7 +137,7 @@
     w.className = "wb-block"; w.dataset.id = b.id;
     w.innerHTML = b.html;
     if (!state.preview) {
-      const comp = BY_ID[b.type];
+      const comp = BY_ID[b.type] || (b.type === "saved" ? { label: "Saved section" } : null);
       const tb = doc.createElement("div");
       tb.className = "wb-tb"; tb.contentEditable = "false";
       tb.innerHTML = `<span class="tag grab" draggable="true" title="Drag to reorder">⠿ ${esc(comp ? comp.label : b.type)}</span>` +
@@ -139,7 +146,7 @@
       w.appendChild(tb);
       w.querySelectorAll("details").forEach((d) => (d.open = true));
       w.querySelectorAll(EDITABLE).forEach((n) => {
-        if (n.closest(".wb-tb") || n.parentElement.closest("[contenteditable=true]")) return;
+        if (n.closest(".wb-tb") || n.matches(NOEDIT) || n.parentElement.closest("[contenteditable=true]")) return;
         n.setAttribute("contenteditable", "true"); n.setAttribute("spellcheck", "false");
       });
     }
@@ -311,7 +318,9 @@
         <span class="name">${esc(x.name)}</span><span class="slug">${esc(x.slug)}.html</span>
         <button class="icon-btn" data-pact="dup" title="Duplicate" style="width:26px;height:26px">⧉</button>
         ${P.length > 1 ? `<button class="icon-btn" data-pact="del" title="Delete" style="width:26px;height:26px">🗑</button>` : ""}</div>`).join("")}
-      <div class="btn-row"><button class="btn primary" id="add-page">+ New page</button></div>
+      <div class="btn-row"><button class="btn primary" id="add-page">+ New blank page</button></div>
+      <div class="section-label">New page from template</div>
+      ${TEMPLATES.map((t) => `<button class="tpl" data-tpl="${t.id}"><strong>${esc(t.name)}</strong><span>${esc(t.desc)}</span></button>`).join("")}
       <div class="section-label">Page settings</div>
       <div class="field"><label>Page name</label><input type="text" id="pg-name" value="${esc(p.name)}"></div>
       <div class="field"><label>File name (slug)</label><input type="text" id="pg-slug" value="${esc(p.slug)}"></div>
@@ -322,7 +331,14 @@
   $("#panel-pages").addEventListener("click", (e) => {
     const item = e.target.closest("[data-page]");
     const act = e.target.closest("[data-pact]");
-    if (e.target.closest("#add-page")) {
+    const tpl = e.target.closest("[data-tpl]");
+    if (tpl) {
+      flushEdit();
+      const t = TEMPLATES.find((x) => x.id === tpl.dataset.tpl), n = state.project.pages.length + 1;
+      const np = newPage(t.name, t.id + (n > 1 ? "-" + n : ""));
+      np.blocks = t.blocks.map(makeBlock);
+      state.project.pages.push(np); state.pageId = np.id; state.selectedId = null; renderAll(); commit(); toast(`Added "${t.name}" page`);
+    } else if (e.target.closest("#add-page")) {
       flushEdit();
       const n = state.project.pages.length + 1, np = newPage("Page " + n, "page-" + n);
       np.blocks = ["navbar", "text", "footer"].map(makeBlock);
@@ -360,11 +376,19 @@
       html += `<div class="section-label">${cat}</div><div class="comp-grid">` +
         list.map((c) => `<div class="comp" draggable="true" data-comp="${c.id}" title="Drag onto the page, or click to add"><span class="ic">${c.icon}</span><span class="lb">${esc(c.label)}</span></div>`).join("") + "</div>";
     });
+    const lib = getLib().filter((l) => !q || l.name.toLowerCase().includes(q));
+    const libHTML = !lib.length ? "" : `<div class="section-label">My sections</div><div>${lib.map((l) => `<div class="lib-item"><div class="comp" draggable="true" data-comp="lib:${l.id}"><span class="lb">★ ${esc(l.name)}</span></div><button class="icon-btn" data-libdel="${l.id}" title="Remove from library" style="width:28px;height:28px">✕</button></div>`).join("")}</div>`;
+    if (libHTML) html = html.replace('<div class="section-label">', () => libHTML + '<div class="section-label">');
     $("#panel-components").innerHTML = html + `<p class="hint" style="margin-top:14px">Drag onto the canvas, or click to insert after the selected block.</p>`;
     const s = $("#comp-search"); if (state.tab === "components" && state.filter) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
   }
   $("#panel-components").addEventListener("input", (e) => { if (e.target.id === "comp-search") { state.filter = e.target.value; renderComponentsPanel(); } });
-  $("#panel-components").addEventListener("click", (e) => { const c = e.target.closest("[data-comp]"); if (c) addBlock(c.dataset.comp); });
+  $("#panel-components").addEventListener("click", (e) => {
+    const d = e.target.closest("[data-libdel]");
+    if (d) { setLib(getLib().filter((l) => l.id !== d.dataset.libdel)); renderComponentsPanel(); return; }
+    const c = e.target.closest("[data-comp]");
+    if (c) { addBlock(c.dataset.comp); if (isSmall()) closeDrawers(); }
+  });
   $("#panel-components").addEventListener("dragstart", (e) => {
     const c = e.target.closest("[data-comp]"); if (!c) return;
     dragState = { kind: "new", type: c.dataset.comp };
@@ -445,7 +469,8 @@
         (p.classList.contains("wb-btn") ? `<div class="field" style="margin-top:8px"><label>Button style</label><select id="in-btnstyle">${[["", "Primary"], ["wb-btn--secondary", "Secondary"], ["wb-btn--outline", "Outline"], ["wb-btn--ghost", "Ghost"]].map(([c, l]) => `<option value="${c}" ${(c ? p.classList.contains(c) : !/wb-btn--(secondary|outline|ghost)/.test(p.className)) ? "selected" : ""}>${l}</option>`).join("")}</select></div>` : "") +
         `</div>` + html;
     }
-    html += `<div class="btn-row"><button class="btn sm" data-bact="html">&lt;/&gt; Edit HTML</button><button class="btn sm" data-bact="up">↑</button><button class="btn sm" data-bact="down">↓</button><button class="btn sm" data-bact="dup">Duplicate</button><button class="btn sm danger" data-bact="del">Delete</button></div>`;
+    if (sec.classList.contains("wb-nav")) html += `<label class="row" style="margin-bottom:8px"><input type="checkbox" id="in-sticky" ${sec.hasAttribute("data-sticky") ? "checked" : ""}> Sticky to top (on exported page)</label>`;
+    html += `<div class="btn-row"><button class="btn sm" data-bact="star" title="Save to My sections">★ Save</button><button class="btn sm" data-bact="html">&lt;/&gt; Edit HTML</button><button class="btn sm" data-bact="up">↑</button><button class="btn sm" data-bact="down">↓</button><button class="btn sm" data-bact="dup">Duplicate</button><button class="btn sm danger" data-bact="del">Delete</button></div>`;
     el.innerHTML = html;
   }
   function setSectionAttr(k, v) {
@@ -466,6 +491,12 @@
     else if (act.dataset.bact === "dup") dupBlock(id);
     else if (act.dataset.bact === "del") delBlock(id);
     else if (act.dataset.bact === "html") openHtmlEditor(id);
+    else if (act.dataset.bact === "star") {
+      const name = prompt("Name for this saved section:", (BY_ID[blockById(id).type] || { label: "My section" }).label);
+      if (!name) return;
+      flushEdit(); const l = getLib(); l.push({ id: uid(), name, html: blockById(id).html }); setLib(l);
+      renderComponentsPanel(); toast("Saved to Components → My sections");
+    }
   });
   $("#inspector").addEventListener("input", (e) => {
     const t = e.target, p = state.pickedEl;
@@ -475,7 +506,8 @@
   function setSectionAttrQuiet(k, v) { const sec = wrapperOf(state.selectedId).firstElementChild; v ? sec.setAttribute(k, v) : sec.removeAttribute(k); syncBlock(state.selectedId); }
   $("#inspector").addEventListener("change", (e) => {
     const t = e.target, p = state.pickedEl;
-    if (t.id === "in-blank" && p) { t.checked ? (p.target = "_blank") && p.setAttribute("rel", "noopener") : (p.removeAttribute("target"), p.removeAttribute("rel")); syncBlock(state.selectedId); flushEdit(); }
+    if (t.id === "in-sticky") setSectionAttr("sticky", t.checked ? "1" : "");
+    else if (t.id === "in-blank" && p) { t.checked ? (p.target = "_blank") && p.setAttribute("rel", "noopener") : (p.removeAttribute("target"), p.removeAttribute("rel")); syncBlock(state.selectedId); flushEdit(); }
     else if (t.id === "in-btnstyle" && p) { p.className = p.className.replace(/\s*wb-btn--(secondary|outline|ghost)/g, ""); if (t.value) p.classList.add(t.value); syncBlock(state.selectedId); flushEdit(); }
     else if (t.id === "img-upload" && p && t.files[0]) {
       const fr = new FileReader();
@@ -499,20 +531,21 @@
   }
 
   /* --------------------------------------------------------------- export */
-  let themeSource = null;
-  async function fetchThemeSource() {
-    if (themeSource != null) return themeSource;
-    try { const r = await fetch("theme/theme.css"); if (r.ok) return (themeSource = await r.text()); } catch (e) {}
-    return null; // e.g. opened via file:// — falls back to <link>
+  const sources = {};
+  async function fetchText(path) {
+    if (sources[path] != null) return sources[path];
+    try { const r = await fetch(path); if (r.ok) return (sources[path] = await r.text()); } catch (e) {}
+    return null; // e.g. opened via file:// — callers fall back to <link>/<script src>
   }
+  const fetchThemeSource = () => fetchText("theme/theme.css");
   const download = (name, text, type = "text/html") => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   };
-  async function buildPage(p) {
+  async function buildPage(p, linked) {
     flushEdit();
-    const css = await fetchThemeSource(), fonts = googleFontsUrl();
+    const css = linked ? null : await fetchThemeSource(), js = linked ? null : await fetchText("theme/theme.js"), fonts = googleFontsUrl();
     const body = p.blocks.map((b) => b.html).join("\n\n");
     return `<!doctype html>
 <html lang="en">
@@ -524,6 +557,7 @@ ${p.description ? `<meta name="description" content="${esc(p.description)}">\n` 
 </head>
 <body>
 ${body}
+${js != null ? `<script>\n${js}\n</script>` : `<script src="theme/theme.js"></script>`}
 </body>
 </html>
 `;
@@ -533,7 +567,38 @@ ${body}
     const out = (css || "/* base theme/theme.css not readable here — keep your original file and append the block below */\n") + "\n/* ---- project overrides ---- */\n" + themeCss() + "\n" + (state.project.customCss || "") + "\n";
     download("theme.css", out, "text/css"); toast("theme.css downloaded");
   }
+
+  /* minimal "stored" (uncompressed) zip writer — no library needed */
+  const CRC = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = (u8) => { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  function makeZip(files) {
+    const enc = new TextEncoder(), chunks = [], central = []; let offset = 0;
+    const u16 = (v) => [v & 255, (v >> 8) & 255], u32 = (v) => [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255];
+    files.forEach(({ name, data }) => {
+      const nb = enc.encode(name), db = typeof data === "string" ? enc.encode(data) : data, crc = crc32(db);
+      const local = new Uint8Array([0x50, 0x4b, 3, 4, 20, 0, 0, 8, 0, 0, 0, 0, 0x21, 0, ...u32(crc), ...u32(db.length), ...u32(db.length), ...u16(nb.length), 0, 0]);
+      chunks.push(local, nb, db);
+      central.push(new Uint8Array([0x50, 0x4b, 1, 2, 20, 0, 20, 0, 0, 8, 0, 0, 0, 0, 0x21, 0, ...u32(crc), ...u32(db.length), ...u32(db.length), ...u16(nb.length), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...u32(offset)]), nb);
+      offset += local.length + nb.length + db.length;
+    });
+    const cSize = central.reduce((a, c) => a + c.length, 0);
+    const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...u16(files.length), ...u16(files.length), ...u32(cSize), ...u32(offset), 0, 0]);
+    return new Blob([...chunks, ...central, end], { type: "application/zip" });
+  }
+  async function exportZip() {
+    flushEdit();
+    const css = await fetchThemeSource(), js = await fetchText("theme/theme.js");
+    if (css == null || js == null) { toast("Zip needs the builder served over http(s). Use 'All pages' instead, or serve the folder."); return; }
+    const files = [];
+    for (const p of state.project.pages) files.push({ name: p.slug + ".html", data: await buildPage(p, true) });
+    files.push({ name: "theme/theme.css", data: css + "\n/* ---- project overrides ---- */\n" + themeCss() + "\n" + (state.project.customCss || "") + "\n" });
+    files.push({ name: "theme/theme.js", data: js });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(makeZip(files));
+    a.download = (state.project.name || "website").replace(/\s+/g, "-").toLowerCase() + ".zip"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast("Website zip downloaded");
+  }
   const exportActions = {
+    zip: exportZip,
     async page() { const p = page(); download(p.slug + ".html", await buildPage(p)); },
     async all() { for (const p of state.project.pages) { download(p.slug + ".html", await buildPage(p)); await new Promise((r) => setTimeout(r, 250)); } },
     theme: exportTheme,
@@ -580,7 +645,7 @@ ${body}
   $("#project-name").addEventListener("input", (e) => { state.project.name = e.target.value; save(); commitLater(); });
   $$("#left-tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
   function setTab(t) {
-    state.tab = t;
+    state.tab = t; $$("#left-tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
     $$("#left-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === t));
     ["pages", "components", "theme"].forEach((n) => ($("#panel-" + n).hidden = n !== t));
   }
@@ -591,6 +656,17 @@ ${body}
     $("#project-name").value = state.project.name;
     renderPagesPanel(); renderComponentsPanel(); renderThemePanel(); renderCanvas(); renderInspector(); updateHistoryButtons();
   }
+  const isSmall = () => window.matchMedia("(max-width: 960px)").matches;
+  function closeDrawers() { document.body.classList.remove("show-left", "show-right"); }
+  function toggleDrawer(side) { const on = !document.body.classList.contains("show-" + side); closeDrawers(); document.body.classList.toggle("show-" + side, on); }
+  $("#toggle-left").addEventListener("click", () => toggleDrawer("left"));
+  $("#toggle-right").addEventListener("click", () => toggleDrawer("right"));
+  $("#drawer-backdrop").addEventListener("click", closeDrawers);
+  window.addEventListener("resize", () => { if (!isSmall()) closeDrawers(); });
+  // on small screens selecting a section opens the inspector shortcut hint via the ⚙ button; keep canvas visible
+  $$("button[title]").forEach((b) => !b.getAttribute("aria-label") && b.setAttribute("aria-label", b.title));
+  $("#left-tabs").setAttribute("role", "tablist");
+  $$("#left-tabs button").forEach((b) => b.setAttribute("role", "tab"));
   setDevice("desktop"); setTab("pages");
   window.addEventListener("beforeunload", () => { try { flushEdit(); } catch (e) {} });
 })();

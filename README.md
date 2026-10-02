@@ -29,8 +29,10 @@ use **Export → Project (.json)** to back up or move them.
 | Path | Purpose |
 |---|---|
 | `theme/theme.css` | **The reusable theme.** Design tokens (`--wb-*`) + styles for every component. |
+| `theme/theme.js` | Tiny behaviour script (nav toggle, tabs, pricing toggle, carousel, multi-step form, countdown). Included in exports. |
 | `src/components.js` | Component library. Push to `WB.components` to add your own. |
 | `src/theme-presets.js` | Theme presets (token overrides). |
+| `src/templates.js` | Full-page templates. |
 | `src/builder.js` | Editor: pages, drag & drop, inline editing, inspector, theme editor, history, export. |
 | `builder/` | Editor UI styles (`builder.css`) and canvas-only styles (`canvas.css`); not shipped in exported pages. |
 
@@ -41,38 +43,34 @@ use **Export → Project (.json)** to back up or move them.
 - **Theme sidebar** – colours, fonts (Google Fonts), corner radius, content width, section spacing, presets, custom CSS; download `theme.css`.
 - **Inspector** – section background, padding, alignment, width, anchor ID, raw HTML editing; link / image / button settings for the selected element.
 - **Canvas** – inline text editing, responsive device preview, preview mode, undo/redo, autosave (localStorage).
-- **Export** – current page, all pages, theme CSS, or the project as JSON (import supported).
+- **Export** – current page, all pages, **a ready-to-host .zip** (pages + theme; needs http serving), theme CSS, or project JSON (import supported).
 
-## Components
-
-### Available now
+## Components (58)
 
 | Category | Components |
 |---|---|
-| Navigation | Navbar |
-| Hero | Hero · Centered, Hero · Split, Hero · Background image |
-| Content | Text block, Image + text, Full image, Gallery, Video embed |
-| Features | Features grid, Feature rows, Stats, Steps |
-| Social proof | Logo cloud, Testimonials, Team |
-| Conversion | Pricing, Call to action, Newsletter, Contact form, FAQ |
+| Navigation | Navbar (mobile hamburger, optional sticky), Announcement bar, Breadcrumbs |
+| Hero | Centered, Split, Background image, With form, Video |
+| Content | Text block, Image + text, Full image, Gallery, Video embed, Tabs, Timeline, Table, Pull quote, Code block |
+| Features | Features grid, Feature rows, Stats, Steps, Comparison table, Icon list, Bento grid |
+| Social proof | Logo cloud, Testimonials, Testimonial carousel, Rating summary, Case studies, Team, Awards & badges |
+| Conversion | Pricing, Pricing monthly/yearly toggle, Call to action, Newsletter, Contact form, Multi-step form, Countdown, Lead-magnet banner, FAQ |
+| Contact | Map embed, Opening hours, Social links |
+| Blog | Post list, Featured post, Author box |
+| E-commerce | Product grid, Product detail, Category cards, Cart summary (static, no backend) |
 | Footer | Footer, Footer · Simple |
-| Layout | Spacer, Divider, Custom HTML |
+| Layout | Columns (2–4), Content + sidebar, Spacer, Divider, Custom HTML |
 
-### Planned
+**Page templates:** Landing page, Business/About, Portfolio, Blog home, Online shop, Pricing page (`src/templates.js`).
+**My sections:** save any section with ★ Save and reuse it from the Components tab (stored in your browser).
 
-| Category | Components |
-|---|---|
-| Navigation | Navbar with mobile hamburger menu, Sticky/transparent navbar, Breadcrumbs, Announcement bar |
-| Hero | Hero with video background, Hero with form, Hero with product mockup |
-| Content | Tabs, Accordion, Timeline, Table, Code block, Quote / pull-quote, Image slider/carousel, Before/after |
-| Features | Icon list, Comparison table, Process flow, Bento grid |
-| Social proof | Testimonial carousel, Case-study cards, Rating/reviews, Awards & badges |
-| Conversion | Countdown timer, Popup / modal, Multi-step form, Lead-magnet banner, Pricing toggle (monthly/yearly) |
-| E-commerce | Product grid, Product detail, Cart summary, Category cards |
-| Blog | Post list, Post card, Author box, Sidebar widgets |
-| Maps & contact | Google Map embed, Opening hours, Social links |
-| Layout | Columns (1–6) container, Section with background image/video, Sidebar layout |
-| Builder features | Drag-drop nested elements, Global/reusable blocks, Saved section templates, Full-page templates, Zip export, Image library |
+### Still planned
+Nested drag-and-drop containers, image library, transparent navbar, popup/modal, before/after slider, real cart/checkout (needs a backend).
+
+## Responsive
+- **Exported pages** are mobile-first responsive (grids collapse, navbar becomes a hamburger menu).
+- **The editor itself** adapts to tablets and phones: the Pages/Components/Theme sidebar and the Inspector become slide-in drawers (☰ and ⚙ buttons).
+  Touch devices use tap-to-add and the ↑ ↓ buttons, since HTML5 drag & drop is not available on touch screens.
 
 ## Add a component
 
@@ -91,4 +89,5 @@ Section options are plain data-attributes handled by the theme:
 
 1. Copy `theme/theme.css` into your project and link it: `<link rel="stylesheet" href="theme.css">`.
 2. Edit the variables in the `:root` block (or use the Theme tab and **Download theme.css**).
-3. Use the `wb-*` classes from `src/components.js` as markup examples.
+3. Add `theme.js` if you use interactive components (tabs, hamburger, etc.).
+4. Use the `wb-*` classes from `src/components.js` as markup examples.
