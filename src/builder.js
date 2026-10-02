@@ -1,0 +1,596 @@
+/* Website Builder core: pages, components, canvas editing, theme, inspector, export. */
+(function () {
+  "use strict";
+  const { components: COMPONENTS, componentById: BY_ID, categories: CATEGORIES, presets: PRESETS } = window.WB;
+  const STORE = "wb-project-v1";
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+  /* ---------------------------------------------------------------- data */
+  const EDITABLE = "h1,h2,h3,h4,h5,h6,p,li,a,button,summary,blockquote,figcaption,label,td,th,.wb-editable,.wb-logos span";
+  const THEME_FIELDS = [
+    { group: "Colors", var: "--wb-primary", label: "Primary", type: "color" },
+    { var: "--wb-primary-contrast", label: "Text on primary", type: "color" },
+    { var: "--wb-secondary", label: "Secondary", type: "color" },
+    { var: "--wb-accent", label: "Accent", type: "color" },
+    { var: "--wb-bg", label: "Page background", type: "color" },
+    { var: "--wb-bg-alt", label: "Alt background", type: "color" },
+    { var: "--wb-text", label: "Text", type: "color" },
+    { var: "--wb-muted", label: "Muted text", type: "color" },
+    { var: "--wb-border", label: "Borders", type: "color" },
+    { var: "--wb-dark-bg", label: "Dark section bg", type: "color" },
+    { var: "--wb-dark-text", label: "Dark section text", type: "color" },
+    { group: "Typography", var: "--wb-font-heading", label: "Heading font", type: "font" },
+    { var: "--wb-font-body", label: "Body font", type: "font" },
+    { var: "--wb-font-size", label: "Base size", type: "range", min: 13, max: 22, unit: "px" },
+    { var: "--wb-heading-weight", label: "Heading weight", type: "select", options: ["400", "500", "600", "700", "800", "900"] },
+    { group: "Shape & spacing", var: "--wb-radius", label: "Corner radius", type: "range", min: 0, max: 32, unit: "px" },
+    { var: "--wb-container", label: "Content width", type: "range", min: 720, max: 1440, unit: "px", step: 20 },
+    { var: "--wb-space", label: "Section spacing", type: "range", min: 24, max: 140, unit: "px", step: 4 },
+  ];
+  const SYS = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+  const FONTS = [
+    ["System UI", SYS],
+    ["Georgia (serif)", "Georgia, 'Times New Roman', serif"],
+    ...["Inter", "Poppins", "Roboto", "Montserrat", "Nunito", "Space Grotesk"].map((f) => [f, `'${f}', system-ui, sans-serif`]),
+    ...["Playfair Display", "DM Serif Display", "Lora", "Merriweather"].map((f) => [f, `'${f}', Georgia, serif`]),
+  ];
+  const GOOGLE = FONTS.slice(2).map(([n]) => n);
+
+  const newPage = (name, slug) => ({ id: uid(), name, slug, title: name, description: "", blocks: [] });
+  const makeBlock = (type) => ({ id: uid(), type, html: BY_ID[type].html().trim() });
+  function defaultProject() {
+    const home = newPage("Home", "index");
+    home.blocks = ["navbar", "hero-split", "features-grid", "testimonials", "cta", "footer"].map(makeBlock);
+    return { name: "My Website", pages: [home], theme: {}, customCss: "" };
+  }
+  function load() {
+    try { const raw = localStorage.getItem(STORE); if (raw) { const p = JSON.parse(raw); if (p && p.pages && p.pages.length) return p; } } catch (e) {}
+    return defaultProject();
+  }
+
+  const state = { project: load(), pageId: null, selectedId: null, pickedEl: null, device: "desktop", preview: false, tab: "pages", filter: "" };
+  state.pageId = state.project.pages[0].id;
+  const page = () => state.project.pages.find((p) => p.id === state.pageId) || state.project.pages[0];
+  const blockById = (id) => page().blocks.find((b) => b.id === id);
+
+  /* -------------------------------------------------------------- history */
+  let hist = [JSON.stringify(state.project)], hi = 0;
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state.project)); } catch (e) {} };
+  function commit() {
+    const s = JSON.stringify(state.project);
+    if (s === hist[hi]) return;
+    hist = hist.slice(0, hi + 1); hist.push(s); hi = hist.length - 1;
+    if (hist.length > 100) { hist.shift(); hi--; }
+    save(); updateHistoryButtons();
+  }
+  function restore(i) {
+    hi = i; state.project = JSON.parse(hist[hi]);
+    if (!state.project.pages.find((p) => p.id === state.pageId)) state.pageId = state.project.pages[0].id;
+    if (!blockById(state.selectedId)) state.selectedId = null;
+    state.pickedEl = null; save(); applyTheme(); renderAll(); updateHistoryButtons();
+  }
+  const undo = () => { flushEdit(); if (hi > 0) restore(hi - 1); };
+  const redo = () => { if (hi < hist.length - 1) restore(hi + 1); };
+  function updateHistoryButtons() { $("#undo").disabled = hi <= 0; $("#redo").disabled = hi >= hist.length - 1; }
+
+  /* --------------------------------------------------------------- canvas */
+  const frame = $("#canvas");
+  let doc, themeDefaults = {}, dragState = null, indicator;
+
+  frame.addEventListener("load", () => {
+    doc = frame.contentDocument;
+    const cs = getComputedStyle(doc.documentElement);
+    THEME_FIELDS.forEach((f) => (themeDefaults[f.var] = cs.getPropertyValue(f.var).trim()));
+    bindCanvas();
+    applyTheme();
+    renderAll();
+  });
+  frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="theme/theme.css"><link rel="stylesheet" href="builder/canvas.css">
+<link id="gf" rel="stylesheet"><style id="theme-vars"></style><style id="custom-css"></style></head><body><div id="wb-root"></div></body></html>`;
+
+  const themeVars = () => state.project.theme || (state.project.theme = {});
+  const varValue = (v) => themeVars()[v] ?? themeDefaults[v] ?? "";
+
+  function googleFontsUrl() {
+    const used = new Set();
+    Object.values(themeVars()).forEach((val) => GOOGLE.forEach((g) => { if (String(val).startsWith(`'${g}'`)) used.add(g); }));
+    if (!used.size) return "";
+    return "https://fonts.googleapis.com/css2?" + [...used].map((g) => "family=" + g.replace(/ /g, "+") + ":wght@400;500;600;700;800").join("&") + "&display=swap";
+  }
+  const themeCss = () => {
+    const entries = Object.entries(themeVars());
+    return entries.length ? ":root{\n" + entries.map(([k, v]) => `  ${k}: ${v};`).join("\n") + "\n}" : "";
+  };
+  function applyTheme() {
+    if (!doc) return;
+    $("#theme-vars", doc).textContent = themeCss();
+    $("#custom-css", doc).textContent = state.project.customCss || "";
+    const url = googleFontsUrl();
+    const gf = $("#gf", doc);
+    if (url) gf.setAttribute("href", url); else gf.removeAttribute("href");
+  }
+
+  /** Strip all editor-only markup from a block wrapper and return the clean section HTML. */
+  function cleanHTML(wrapper) {
+    const el = wrapper.firstElementChild.cloneNode(true);
+    el.querySelectorAll("[contenteditable]").forEach((n) => n.removeAttribute("contenteditable"));
+    el.querySelectorAll("[spellcheck]").forEach((n) => n.removeAttribute("spellcheck"));
+    el.querySelectorAll(".is-picked").forEach((n) => { n.classList.remove("is-picked"); if (!n.className) n.removeAttribute("class"); });
+    el.querySelectorAll("details").forEach((d) => { d.removeAttribute("open"); if (d.dataset.open) d.setAttribute("open", ""); });
+    return el.outerHTML;
+  }
+
+  function makeBlockEl(b) {
+    const w = doc.createElement("div");
+    w.className = "wb-block"; w.dataset.id = b.id;
+    w.innerHTML = b.html;
+    if (!state.preview) {
+      const comp = BY_ID[b.type];
+      const tb = doc.createElement("div");
+      tb.className = "wb-tb"; tb.contentEditable = "false";
+      tb.innerHTML = `<span class="tag grab" draggable="true" title="Drag to reorder">⠿ ${esc(comp ? comp.label : b.type)}</span>` +
+        `<button data-act="up" title="Move up">↑</button><button data-act="down" title="Move down">↓</button>` +
+        `<button data-act="dup" title="Duplicate">⧉</button><button data-act="del" title="Delete">🗑</button>`;
+      w.appendChild(tb);
+      w.querySelectorAll("details").forEach((d) => (d.open = true));
+      w.querySelectorAll(EDITABLE).forEach((n) => {
+        if (n.closest(".wb-tb") || n.parentElement.closest("[contenteditable=true]")) return;
+        n.setAttribute("contenteditable", "true"); n.setAttribute("spellcheck", "false");
+      });
+    }
+    return w;
+  }
+
+  function renderCanvas() {
+    if (!doc) return;
+    const root = $("#wb-root", doc);
+    doc.body.className = state.preview ? "" : "wb-edit";
+    root.innerHTML = "";
+    const blocks = page().blocks;
+    if (!blocks.length) root.innerHTML = `<div class="wb-empty"><strong>This page is empty</strong>Drag a component from the sidebar, or click one to add it.</div>`;
+    blocks.forEach((b) => root.appendChild(makeBlockEl(b)));
+    indicator = doc.createElement("div"); indicator.className = "wb-drop"; doc.body.appendChild(indicator);
+    markSelection();
+    doc.title = page().title;
+  }
+  function markSelection() {
+    $$(".wb-block", doc).forEach((w) => w.classList.toggle("is-selected", w.dataset.id === state.selectedId));
+  }
+  const wrapperOf = (id) => $(`.wb-block[data-id="${id}"]`, doc);
+
+  /* sync DOM edits back to block data */
+  let editingId = null;
+  const commitLater = debounce(() => commit(), 500);
+  function syncBlock(id) {
+    const w = wrapperOf(id), b = blockById(id);
+    if (!w || !b) return;
+    b.html = cleanHTML(w);
+    commitLater();
+  }
+  function flushEdit() { if (editingId) { syncBlock(editingId); editingId = null; } commit(); }
+
+  /* --------------------------------------------------- block operations */
+  function select(id, scroll) {
+    state.selectedId = id; markSelection(); renderInspector();
+    if (scroll && id) wrapperOf(id).scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  function addBlock(type, index) {
+    flushEdit();
+    const blocks = page().blocks;
+    if (index == null) { const i = blocks.findIndex((b) => b.id === state.selectedId); index = i >= 0 ? i + 1 : blocks.length; }
+    const b = makeBlock(type);
+    blocks.splice(index, 0, b);
+    state.selectedId = b.id; state.pickedEl = null;
+    renderCanvas(); renderInspector(); commit();
+    wrapperOf(b.id).scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  function moveBlock(id, to) {
+    flushEdit();
+    const blocks = page().blocks, from = blocks.findIndex((b) => b.id === id);
+    to = Math.max(0, Math.min(blocks.length - 1, to));
+    if (from < 0 || from === to) return;
+    blocks.splice(to, 0, blocks.splice(from, 1)[0]);
+    renderCanvas(); commit();
+  }
+  function dupBlock(id) {
+    flushEdit();
+    const blocks = page().blocks, i = blocks.findIndex((b) => b.id === id);
+    const copy = { ...blocks[i], id: uid() };
+    blocks.splice(i + 1, 0, copy); state.selectedId = copy.id;
+    renderCanvas(); renderInspector(); commit();
+  }
+  function delBlock(id) {
+    flushEdit();
+    const blocks = page().blocks, i = blocks.findIndex((b) => b.id === id);
+    if (i < 0) return;
+    blocks.splice(i, 1);
+    if (state.selectedId === id) { state.selectedId = null; state.pickedEl = null; }
+    renderCanvas(); renderInspector(); commit();
+  }
+
+  /* ------------------------------------------------------- canvas events */
+  function dropIndexAt(y) {
+    const ws = $$(".wb-block", doc);
+    let idx = 0, top = 0;
+    ws.forEach((w, i) => { const r = w.getBoundingClientRect(); if (y > r.top + r.height / 2) idx = i + 1; });
+    if (ws.length) { const r = (ws[idx] || ws[ws.length - 1]).getBoundingClientRect(); top = (ws[idx] ? r.top : r.bottom) + doc.defaultView.scrollY; }
+    return { idx, top };
+  }
+  function bindCanvas() {
+    doc.addEventListener("click", (e) => {
+      const t = e.target;
+      const a = t.closest("a");
+      if (state.preview) {
+        if (!a) return;
+        const href = a.getAttribute("href") || "";
+        e.preventDefault();
+        if (href.startsWith("#")) { const el = href.length > 1 && doc.getElementById(href.slice(1)); if (el) el.scrollIntoView({ behavior: "smooth" }); return; }
+        const target = state.project.pages.find((p) => href === p.slug + ".html" || href === p.slug);
+        if (target) { state.pageId = target.id; renderAll(); }
+        return;
+      }
+      const btn = t.closest(".wb-tb button");
+      const w = t.closest(".wb-block");
+      if (a) e.preventDefault();
+      if (btn && w) {
+        const id = w.dataset.id, i = page().blocks.findIndex((b) => b.id === id);
+        ({ up: () => moveBlock(id, i - 1), down: () => moveBlock(id, i + 1), dup: () => dupBlock(id), del: () => delBlock(id) })[btn.dataset.act]();
+        return;
+      }
+      if (!w) { state.pickedEl = null; select(null); return; }
+      // pick element for attribute editing
+      const pick = t.closest("img,a,iframe,.wb-btn,button");
+      $$(".is-picked", doc).forEach((n) => n.classList.remove("is-picked"));
+      state.pickedEl = pick && !pick.closest(".wb-tb") ? pick : null;
+      if (state.pickedEl) state.pickedEl.classList.add("is-picked");
+      const changed = state.selectedId !== w.dataset.id;
+      state.selectedId = w.dataset.id; markSelection();
+      if (changed || state.pickedEl || true) renderInspector();
+    });
+    doc.addEventListener("focusin", (e) => { const w = e.target.closest(".wb-block"); if (w) editingId = w.dataset.id; });
+    doc.addEventListener("focusout", () => { if (editingId) { syncBlock(editingId); } });
+    doc.addEventListener("input", (e) => { const w = e.target.closest(".wb-block"); if (w) { editingId = w.dataset.id; syncBlock(editingId); } });
+    doc.addEventListener("keydown", (e) => {
+      const el = e.target;
+      if (el.isContentEditable && e.key === "Enter" && !/^(P|LI|BLOCKQUOTE|DIV|TD|TH)$/.test(el.tagName)) { e.preventDefault(); el.blur(); }
+      onKey(e);
+    });
+    doc.addEventListener("paste", (e) => {
+      if (!e.target.isContentEditable) return;
+      e.preventDefault();
+      doc.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
+    });
+    // drag & drop (new components from sidebar, reorder from block handle)
+    doc.addEventListener("dragstart", (e) => {
+      const h = e.target.closest && e.target.closest(".wb-tb [draggable]");
+      if (!h) return;
+      const w = h.closest(".wb-block");
+      dragState = { kind: "move", id: w.dataset.id };
+      e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", w.dataset.id);
+      e.dataTransfer.setDragImage(w, 20, 20);
+    });
+    doc.addEventListener("dragover", (e) => {
+      if (!dragState) return;
+      e.preventDefault();
+      const { top } = dropIndexAt(e.clientY);
+      indicator.style.display = "block"; indicator.style.top = Math.max(0, top - 2) + "px";
+    });
+    doc.addEventListener("dragleave", (e) => { if (!e.relatedTarget && indicator) indicator.style.display = "none"; });
+    doc.addEventListener("drop", (e) => {
+      if (!dragState) return;
+      e.preventDefault();
+      const { idx } = dropIndexAt(e.clientY), ds = dragState;
+      dragState = null; indicator.style.display = "none";
+      if (ds.kind === "new") addBlock(ds.type, idx);
+      else { const from = page().blocks.findIndex((b) => b.id === ds.id); moveBlock(ds.id, idx > from ? idx - 1 : idx); }
+    });
+    doc.addEventListener("dragend", () => { dragState = null; if (indicator) indicator.style.display = "none"; });
+  }
+
+  function onKey(e) {
+    const mod = e.ctrlKey || e.metaKey;
+    const editing = e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+    if (mod && e.key.toLowerCase() === "z") { if (editing && !e.shiftKey && e.target.isContentEditable === false) return; e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    else if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); }
+    else if ((e.key === "Delete" || e.key === "Backspace") && !editing && state.selectedId && !state.preview) { e.preventDefault(); delBlock(state.selectedId); }
+    else if (e.key === "Escape" && state.preview) togglePreview(false);
+  }
+  document.addEventListener("keydown", onKey);
+
+  /* ----------------------------------------------------------- left panel */
+  function renderPagesPanel() {
+    const p = page(), P = state.project.pages;
+    $("#panel-pages").innerHTML = `
+      <div class="section-label">Pages</div>
+      ${P.map((x) => `<div class="page-item ${x.id === p.id ? "active" : ""}" data-page="${x.id}">
+        <span class="name">${esc(x.name)}</span><span class="slug">${esc(x.slug)}.html</span>
+        <button class="icon-btn" data-pact="dup" title="Duplicate" style="width:26px;height:26px">⧉</button>
+        ${P.length > 1 ? `<button class="icon-btn" data-pact="del" title="Delete" style="width:26px;height:26px">🗑</button>` : ""}</div>`).join("")}
+      <div class="btn-row"><button class="btn primary" id="add-page">+ New page</button></div>
+      <div class="section-label">Page settings</div>
+      <div class="field"><label>Page name</label><input type="text" id="pg-name" value="${esc(p.name)}"></div>
+      <div class="field"><label>File name (slug)</label><input type="text" id="pg-slug" value="${esc(p.slug)}"></div>
+      <div class="field"><label>SEO title</label><input type="text" id="pg-title" value="${esc(p.title)}"></div>
+      <div class="field"><label>Meta description</label><input type="text" id="pg-desc" value="${esc(p.description)}"></div>
+      <p class="hint">Link to another page from a button or menu item by setting its link to <code>slug.html</code>.</p>`;
+  }
+  $("#panel-pages").addEventListener("click", (e) => {
+    const item = e.target.closest("[data-page]");
+    const act = e.target.closest("[data-pact]");
+    if (e.target.closest("#add-page")) {
+      flushEdit();
+      const n = state.project.pages.length + 1, np = newPage("Page " + n, "page-" + n);
+      np.blocks = ["navbar", "text", "footer"].map(makeBlock);
+      state.project.pages.push(np); state.pageId = np.id; state.selectedId = null; renderAll(); commit();
+    } else if (act && item) {
+      flushEdit();
+      const i = state.project.pages.findIndex((x) => x.id === item.dataset.page);
+      if (act.dataset.pact === "dup") {
+        const src = state.project.pages[i], cp = JSON.parse(JSON.stringify(src));
+        cp.id = uid(); cp.name += " copy"; cp.slug += "-copy"; cp.blocks.forEach((b) => (b.id = uid()));
+        state.project.pages.splice(i + 1, 0, cp); state.pageId = cp.id;
+      } else if (confirm("Delete this page?")) {
+        state.project.pages.splice(i, 1); state.pageId = state.project.pages[Math.max(0, i - 1)].id;
+      }
+      state.selectedId = null; renderAll(); commit();
+    } else if (item) { flushEdit(); state.pageId = item.dataset.page; state.selectedId = null; state.pickedEl = null; renderAll(); }
+  });
+  $("#panel-pages").addEventListener("input", (e) => {
+    const map = { "pg-name": "name", "pg-slug": "slug", "pg-title": "title", "pg-desc": "description" };
+    const k = map[e.target.id]; if (!k) return;
+    let v = e.target.value;
+    if (k === "slug") v = v.toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+    page()[k] = v;
+    if (k === "name") { const it = $(`.page-item.active .name`); if (it) it.textContent = v; }
+    if (k === "slug") { const it = $(`.page-item.active .slug`); if (it) it.textContent = v + ".html"; }
+    save(); commitLater();
+  });
+
+  function renderComponentsPanel() {
+    const q = state.filter.toLowerCase();
+    let html = `<input class="search" id="comp-search" placeholder="Search components…" value="${esc(state.filter)}">`;
+    CATEGORIES.forEach((cat) => {
+      const list = COMPONENTS.filter((c) => c.category === cat && (!q || c.label.toLowerCase().includes(q) || cat.toLowerCase().includes(q)));
+      if (!list.length) return;
+      html += `<div class="section-label">${cat}</div><div class="comp-grid">` +
+        list.map((c) => `<div class="comp" draggable="true" data-comp="${c.id}" title="Drag onto the page, or click to add"><span class="ic">${c.icon}</span><span class="lb">${esc(c.label)}</span></div>`).join("") + "</div>";
+    });
+    $("#panel-components").innerHTML = html + `<p class="hint" style="margin-top:14px">Drag onto the canvas, or click to insert after the selected block.</p>`;
+    const s = $("#comp-search"); if (state.tab === "components" && state.filter) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+  }
+  $("#panel-components").addEventListener("input", (e) => { if (e.target.id === "comp-search") { state.filter = e.target.value; renderComponentsPanel(); } });
+  $("#panel-components").addEventListener("click", (e) => { const c = e.target.closest("[data-comp]"); if (c) addBlock(c.dataset.comp); });
+  $("#panel-components").addEventListener("dragstart", (e) => {
+    const c = e.target.closest("[data-comp]"); if (!c) return;
+    dragState = { kind: "new", type: c.dataset.comp };
+    e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", c.dataset.comp);
+  });
+  $("#panel-components").addEventListener("dragend", () => { dragState = null; if (indicator) indicator.style.display = "none"; });
+
+  /* ---------------------------------------------------------- theme panel */
+  function renderThemePanel() {
+    let html = `<div class="section-label">Presets</div><div class="presets">` +
+      PRESETS.map((p, i) => `<button class="preset" data-preset="${i}"><div class="dots">${["--wb-primary", "--wb-secondary", "--wb-accent", "--wb-bg-alt"].map((v) => `<i style="background:${p.vars[v] || themeDefaults[v] || "#ddd"}"></i>`).join("")}</div>${esc(p.name)}</button>`).join("") + `</div>`;
+    THEME_FIELDS.forEach((f) => {
+      if (f.group) html += `<div class="section-label">${f.group}</div>`;
+      const v = varValue(f.var);
+      if (f.type === "color") html += `<div class="color-field"><label>${f.label}</label><code>${esc(v)}</code><input type="color" data-var="${f.var}" value="${/^#[0-9a-f]{6}$/i.test(v) ? v : "#000000"}"></div>`;
+      else if (f.type === "range") { const n = parseFloat(v) || f.min; html += `<div class="range-field"><div class="top"><span>${f.label}</span><span>${n}${f.unit}</span></div><input type="range" data-var="${f.var}" data-unit="${f.unit}" min="${f.min}" max="${f.max}" step="${f.step || 1}" value="${n}"></div>`; }
+      else if (f.type === "select") html += `<div class="field"><label>${f.label}</label><select data-var="${f.var}">${f.options.map((o) => `<option ${o === v ? "selected" : ""}>${o}</option>`).join("")}</select></div>`;
+      else if (f.type === "font") {
+        const known = FONTS.some(([, val]) => val === v);
+        html += `<div class="field"><label>${f.label}</label><select data-var="${f.var}">${known ? "" : `<option selected>${esc(v)}</option>`}${FONTS.map(([n, val]) => `<option value="${esc(val)}" ${val === v ? "selected" : ""}>${n}</option>`).join("")}</select></div>`;
+      }
+    });
+    html += `<div class="section-label">Custom CSS</div><div class="field"><textarea id="custom-css-input" placeholder=".wb-card { box-shadow: none; }">${esc(state.project.customCss)}</textarea></div>
+      <div class="btn-row"><button class="btn" id="theme-reset">Reset theme</button><button class="btn primary" id="theme-download">Download theme.css</button></div>
+      <p class="hint" style="margin-top:10px">All components read these tokens from <code>theme/theme.css</code>. Download the result and drop it into a new project to reuse your design.</p>`;
+    $("#panel-theme").innerHTML = html;
+  }
+  const themeInput = (e) => {
+    const t = e.target, v = t.dataset.var; if (!v) return;
+    let val = t.value;
+    if (t.dataset.unit) val += t.dataset.unit;
+    themeVars()[v] = val;
+    applyTheme(); commitLater();
+    if (t.type === "color") t.previousElementSibling.textContent = val;
+    if (t.type === "range") t.previousElementSibling.lastElementChild.textContent = val;
+  };
+  $("#panel-theme").addEventListener("input", (e) => {
+    if (e.target.id === "custom-css-input") { state.project.customCss = e.target.value; applyTheme(); save(); commitLater(); return; }
+    if (e.target.tagName !== "SELECT") themeInput(e);
+  });
+  $("#panel-theme").addEventListener("change", (e) => { if (e.target.tagName === "SELECT" && e.target.dataset.var) { themeInput(e); renderThemePanel(); } });
+  $("#panel-theme").addEventListener("click", (e) => {
+    const pr = e.target.closest("[data-preset]");
+    if (pr) { state.project.theme = { ...PRESETS[+pr.dataset.preset].vars }; applyTheme(); renderThemePanel(); commit(); }
+    else if (e.target.id === "theme-reset") { state.project.theme = {}; state.project.customCss = ""; applyTheme(); renderThemePanel(); commit(); }
+    else if (e.target.id === "theme-download") exportTheme();
+  });
+
+  /* ------------------------------------------------------------ inspector */
+  const segHTML = (key, opts, cur) => `<div class="seg" data-key="${key}">${opts.map(([v, l]) => `<button data-val="${v}" class="${cur === v ? "active" : ""}">${l}</button>`).join("")}</div>`;
+  function renderInspector() {
+    const el = $("#inspector"), b = state.selectedId && blockById(state.selectedId), w = b && wrapperOf(b.id);
+    if (!b || !w) {
+      el.innerHTML = `<p class="hint">Click a section on the canvas to edit its settings. Click any text to type directly.</p>
+        <div class="section-label">Page</div><p><strong>${esc(page().name)}</strong><br><span class="hint">${page().blocks.length} sections</span></p>`;
+      return;
+    }
+    const sec = w.firstElementChild, comp = BY_ID[b.type];
+    const bg = sec.dataset.bg || "default";
+    const swatch = { default: "var(--ed-panel)", alt: "#eef1f7", primary: "#4f46e5", dark: "#0f172a" };
+    let html = `<div class="section-label">${esc(comp ? comp.label : "Section")}</div>
+      <div class="field"><label>Background</label><div class="swatches" data-key="bg">${["default", "alt", "primary", "dark"].map((v) => `<button data-val="${v}" title="${v}" class="${bg === v ? "active" : ""}" style="background:${swatch[v]}"></button>`).join("")}</div></div>
+      <div class="field"><label>Vertical padding</label>${segHTML("pad", [["none", "0"], ["sm", "S"], ["md", "M"], ["lg", "L"], ["xl", "XL"]], sec.dataset.pad || "md")}</div>
+      <div class="field"><label>Text alignment</label>${segHTML("align", [["", "Auto"], ["left", "Left"], ["center", "Center"], ["right", "Right"]], sec.dataset.align || "")}</div>
+      <div class="field"><label>Content width</label>${segHTML("width", [["narrow", "Narrow"], ["", "Normal"], ["wide", "Wide"], ["full", "Full"]], sec.dataset.width || "")}</div>
+      <div class="field"><label>Anchor ID (for #links)</label><input type="text" id="in-id" value="${esc(sec.id)}" placeholder="e.g. pricing"></div>`;
+    const p = state.pickedEl && w.contains(state.pickedEl) ? state.pickedEl : null;
+    if (p) {
+      const tag = p.tagName.toLowerCase();
+      html = `<div class="picked-box"><div class="section-label" style="margin-top:0">Selected ${tag === "a" ? "link" : tag}</div>` +
+        (tag === "img" ? `<div class="field"><label>Image URL</label><input type="text" data-attr="src" value="${esc(p.getAttribute("src").startsWith("data:") ? "" : p.getAttribute("src"))}" placeholder="https://…"></div>
+          <div class="field"><label>Upload image</label><input type="file" id="img-upload" accept="image/*"></div>
+          <div class="field"><label>Alt text</label><input type="text" data-attr="alt" value="${esc(p.getAttribute("alt"))}"></div>` : "") +
+        (tag === "iframe" ? `<div class="field"><label>Embed URL</label><input type="text" data-attr="src" value="${esc(p.getAttribute("src"))}"></div>` : "") +
+        (tag === "a" || tag === "button" ? (tag === "a" ? `<div class="field"><label>Link (URL, #anchor or page.html)</label><input type="text" data-attr="href" list="page-links" value="${esc(p.getAttribute("href"))}">
+          <datalist id="page-links">${state.project.pages.map((x) => `<option value="${esc(x.slug)}.html">`).join("")}</datalist></div>
+          <label class="row"><input type="checkbox" id="in-blank" ${p.target === "_blank" ? "checked" : ""}> Open in new tab</label>` : "") : "") +
+        (p.classList.contains("wb-btn") ? `<div class="field" style="margin-top:8px"><label>Button style</label><select id="in-btnstyle">${[["", "Primary"], ["wb-btn--secondary", "Secondary"], ["wb-btn--outline", "Outline"], ["wb-btn--ghost", "Ghost"]].map(([c, l]) => `<option value="${c}" ${(c ? p.classList.contains(c) : !/wb-btn--(secondary|outline|ghost)/.test(p.className)) ? "selected" : ""}>${l}</option>`).join("")}</select></div>` : "") +
+        `</div>` + html;
+    }
+    html += `<div class="btn-row"><button class="btn sm" data-bact="html">&lt;/&gt; Edit HTML</button><button class="btn sm" data-bact="up">↑</button><button class="btn sm" data-bact="down">↓</button><button class="btn sm" data-bact="dup">Duplicate</button><button class="btn sm danger" data-bact="del">Delete</button></div>`;
+    el.innerHTML = html;
+  }
+  function setSectionAttr(k, v) {
+    const w = wrapperOf(state.selectedId); if (!w) return;
+    const sec = w.firstElementChild;
+    if (k === "id") v ? sec.setAttribute("id", v) : sec.removeAttribute("id");
+    else v && !(k === "bg" && v === "default") ? sec.setAttribute("data-" + k, v) : sec.removeAttribute("data-" + k);
+    syncBlock(state.selectedId); flushEdit(); renderInspector();
+  }
+  $("#inspector").addEventListener("click", (e) => {
+    const opt = e.target.closest("[data-key] [data-val]");
+    if (opt) return setSectionAttr(opt.parentElement.dataset.key, opt.dataset.val);
+    const act = e.target.closest("[data-bact]");
+    if (!act || !state.selectedId) return;
+    const id = state.selectedId, i = page().blocks.findIndex((b) => b.id === id);
+    if (act.dataset.bact === "up") moveBlock(id, i - 1);
+    else if (act.dataset.bact === "down") moveBlock(id, i + 1);
+    else if (act.dataset.bact === "dup") dupBlock(id);
+    else if (act.dataset.bact === "del") delBlock(id);
+    else if (act.dataset.bact === "html") openHtmlEditor(id);
+  });
+  $("#inspector").addEventListener("input", (e) => {
+    const t = e.target, p = state.pickedEl;
+    if (t.id === "in-id") return setSectionAttrQuiet("id", t.value.trim().replace(/[^\w-]/g, ""));
+    if (t.dataset.attr && p) { p.setAttribute(t.dataset.attr, t.value); syncBlock(state.selectedId); }
+  });
+  function setSectionAttrQuiet(k, v) { const sec = wrapperOf(state.selectedId).firstElementChild; v ? sec.setAttribute(k, v) : sec.removeAttribute(k); syncBlock(state.selectedId); }
+  $("#inspector").addEventListener("change", (e) => {
+    const t = e.target, p = state.pickedEl;
+    if (t.id === "in-blank" && p) { t.checked ? (p.target = "_blank") && p.setAttribute("rel", "noopener") : (p.removeAttribute("target"), p.removeAttribute("rel")); syncBlock(state.selectedId); flushEdit(); }
+    else if (t.id === "in-btnstyle" && p) { p.className = p.className.replace(/\s*wb-btn--(secondary|outline|ghost)/g, ""); if (t.value) p.classList.add(t.value); syncBlock(state.selectedId); flushEdit(); }
+    else if (t.id === "img-upload" && p && t.files[0]) {
+      const fr = new FileReader();
+      fr.onload = () => { p.setAttribute("src", fr.result); syncBlock(state.selectedId); flushEdit(); renderInspector(); toast("Image embedded in page (data URL)"); };
+      fr.readAsDataURL(t.files[0]);
+    }
+  });
+
+  function openHtmlEditor(id) {
+    const w = wrapperOf(id);
+    $("#modal-title").textContent = "Edit section HTML";
+    $("#modal-text").value = cleanHTML(w);
+    const dlg = $("#modal");
+    dlg.onclose = () => {
+      if (dlg.returnValue !== "ok") return;
+      const b = blockById(id); if (!b) return;
+      b.html = $("#modal-text").value.trim();
+      renderCanvas(); renderInspector(); commit();
+    };
+    dlg.returnValue = ""; dlg.showModal();
+  }
+
+  /* --------------------------------------------------------------- export */
+  let themeSource = null;
+  async function fetchThemeSource() {
+    if (themeSource != null) return themeSource;
+    try { const r = await fetch("theme/theme.css"); if (r.ok) return (themeSource = await r.text()); } catch (e) {}
+    return null; // e.g. opened via file:// — falls back to <link>
+  }
+  const download = (name, text, type = "text/html") => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  async function buildPage(p) {
+    flushEdit();
+    const css = await fetchThemeSource(), fonts = googleFontsUrl();
+    const body = p.blocks.map((b) => b.html).join("\n\n");
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(p.title || p.name)}</title>
+${p.description ? `<meta name="description" content="${esc(p.description)}">\n` : ""}${fonts ? `<link rel="stylesheet" href="${fonts}">\n` : ""}${css != null ? `<style>\n${css}\n${themeCss()}\n${state.project.customCss || ""}\n</style>` : `<link rel="stylesheet" href="theme/theme.css">\n<style>\n${themeCss()}\n${state.project.customCss || ""}\n</style>`}
+</head>
+<body>
+${body}
+</body>
+</html>
+`;
+  }
+  async function exportTheme() {
+    const css = await fetchThemeSource();
+    const out = (css || "/* base theme/theme.css not readable here — keep your original file and append the block below */\n") + "\n/* ---- project overrides ---- */\n" + themeCss() + "\n" + (state.project.customCss || "") + "\n";
+    download("theme.css", out, "text/css"); toast("theme.css downloaded");
+  }
+  const exportActions = {
+    async page() { const p = page(); download(p.slug + ".html", await buildPage(p)); },
+    async all() { for (const p of state.project.pages) { download(p.slug + ".html", await buildPage(p)); await new Promise((r) => setTimeout(r, 250)); } },
+    theme: exportTheme,
+    json() { flushEdit(); download((state.project.name || "project").replace(/\s+/g, "-").toLowerCase() + ".json", JSON.stringify(state.project, null, 2), "application/json"); },
+    import() { $("#import-file").click(); },
+    reset() {
+      if (!confirm("Reset to the starter project? This discards all current pages.")) return;
+      state.project = defaultProject(); state.pageId = state.project.pages[0].id; state.selectedId = null;
+      applyTheme(); renderAll(); commit();
+    },
+  };
+  $("#export-menu").addEventListener("click", (e) => { const k = e.target.dataset.export; if (k) { $("#export-menu").hidden = true; exportActions[k](); } });
+  $("#export-menu-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#export-menu").hidden = !$("#export-menu").hidden; });
+  document.addEventListener("click", () => ($("#export-menu").hidden = true));
+  $("#import-file").addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        const p = JSON.parse(fr.result);
+        if (!p.pages || !p.pages.length) throw new Error("no pages");
+        state.project = p; state.pageId = p.pages[0].id; state.selectedId = null;
+        applyTheme(); renderAll(); commit(); toast("Project imported");
+      } catch (err) { toast("Could not import: invalid project file"); }
+    };
+    fr.readAsText(f); e.target.value = "";
+  });
+
+  /* ------------------------------------------------------------- top bar */
+  function setDevice(d) {
+    state.device = d; $("#frame-wrap").className = d === "desktop" ? "" : d;
+    $$("[data-device]").forEach((b) => b.classList.toggle("active", b.dataset.device === d));
+  }
+  $$("[data-device]").forEach((b) => b.addEventListener("click", () => setDevice(b.dataset.device)));
+  function togglePreview(on = !state.preview) {
+    flushEdit(); state.preview = on;
+    document.body.classList.toggle("previewing", on);
+    $("#preview").textContent = on ? "✎ Back to editor" : "👁 Preview";
+    renderCanvas();
+  }
+  $("#preview").addEventListener("click", () => togglePreview());
+  $("#undo").addEventListener("click", undo);
+  $("#redo").addEventListener("click", redo);
+  $("#project-name").addEventListener("input", (e) => { state.project.name = e.target.value; save(); commitLater(); });
+  $$("#left-tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+  function setTab(t) {
+    state.tab = t;
+    $$("#left-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === t));
+    ["pages", "components", "theme"].forEach((n) => ($("#panel-" + n).hidden = n !== t));
+  }
+  let toastT;
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2400); }
+
+  function renderAll() {
+    $("#project-name").value = state.project.name;
+    renderPagesPanel(); renderComponentsPanel(); renderThemePanel(); renderCanvas(); renderInspector(); updateHistoryButtons();
+  }
+  setDevice("desktop"); setTab("pages");
+  window.addEventListener("beforeunload", () => { try { flushEdit(); } catch (e) {} });
+})();

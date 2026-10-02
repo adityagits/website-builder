@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Website Builder</title>
+  <link rel="stylesheet" href="builder/builder.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="tb-left">
+      <strong class="logo">▦ Website Builder</strong>
+      <input id="project-name" class="tb-name" aria-label="Project name">
+    </div>
+    <div class="tb-center">
+      <button class="icon-btn" data-device="desktop" title="Desktop">🖥</button>
+      <button class="icon-btn" data-device="tablet" title="Tablet">▭</button>
+      <button class="icon-btn" data-device="mobile" title="Mobile">📱</button>
+      <span class="sep"></span>
+      <button class="icon-btn" id="undo" title="Undo (Ctrl+Z)">↶</button>
+      <button class="icon-btn" id="redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+    </div>
+    <div class="tb-right">
+      <button class="btn" id="preview">👁 Preview</button>
+      <div class="menu">
+        <button class="btn primary" id="export-menu-btn">Export ▾</button>
+        <div class="menu-list" id="export-menu" hidden>
+          <button data-export="page">Current page (.html)</button>
+          <button data-export="all">All pages (.html)</button>
+          <button data-export="theme">Theme (theme.css)</button>
+          <button data-export="json">Project (.json)</button>
+          <hr>
+          <button data-export="import">Import project (.json)…</button>
+          <button data-export="reset">Reset project</button>
+        </div>
+      </div>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+    </div>
+  </header>
+
+  <aside id="left">
+    <nav class="tabs" id="left-tabs">
+      <button data-tab="pages" class="active">Pages</button>
+      <button data-tab="components">Components</button>
+      <button data-tab="theme">Theme</button>
+    </nav>
+    <div class="panel" id="panel-pages"></div>
+    <div class="panel" id="panel-components" hidden></div>
+    <div class="panel" id="panel-theme" hidden></div>
+  </aside>
+
+  <main id="stage">
+    <div id="frame-wrap"><iframe id="canvas" title="Page canvas"></iframe></div>
+  </main>
+
+  <aside id="right">
+    <div class="panel-title">Inspector</div>
+    <div class="panel" id="inspector"></div>
+  </aside>
+
+  <dialog id="modal"><form method="dialog">
+    <h3 id="modal-title"></h3>
+    <textarea id="modal-text" spellcheck="false"></textarea>
+    <div class="modal-actions"><button class="btn" value="cancel">Cancel</button><button class="btn primary" id="modal-ok" value="ok">Apply</button></div>
+  </form></dialog>
+  <div id="toast" hidden></div>
+
+  <script src="src/components.js"></script>
+  <script src="src/theme-presets.js"></script>
+  <script src="src/builder.js"></script>
+</body>
+</html>

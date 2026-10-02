@@ -1,0 +1,26 @@
+/* Editor-only styles injected into the canvas iframe. NOT part of exported pages. */
+body.wb-edit iframe { pointer-events: none; }
+.wb-block { position: relative; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color .1s; }
+.wb-edit .wb-block:hover { outline-color: rgba(79,70,229,.45); }
+.wb-edit .wb-block.is-selected { outline-color: #4f46e5; }
+.wb-tb {
+  position: absolute; top: 8px; right: 8px; z-index: 50; display: none; gap: 2px; padding: 3px;
+  background: #4f46e5; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.25);
+  font: 600 12px/1 system-ui, sans-serif; color: #fff; user-select: none; align-items: center;
+}
+.wb-tb .tag { padding: 0 8px; opacity: .85; text-transform: capitalize; }
+.wb-tb button {
+  all: unset; cursor: pointer; width: 26px; height: 26px; display: grid; place-items: center;
+  border-radius: 6px; color: #fff; font-size: 14px; box-sizing: border-box;
+}
+.wb-tb button:hover { background: rgba(255,255,255,.22); }
+.wb-tb .grab { cursor: grab; }
+.wb-edit .wb-block.is-selected > .wb-tb, .wb-edit .wb-block:hover > .wb-tb { display: flex; }
+.wb-edit [contenteditable="true"] { cursor: text; outline: none; }
+.wb-edit [contenteditable="true"]:hover { box-shadow: 0 0 0 1px rgba(79,70,229,.35); }
+.wb-edit [contenteditable="true"]:focus { box-shadow: 0 0 0 2px #4f46e5; border-radius: 3px; }
+.wb-edit .is-picked { box-shadow: 0 0 0 2px #f59e0b !important; }
+.wb-drop { position: absolute; left: 0; right: 0; height: 4px; background: #4f46e5; z-index: 100; border-radius: 2px; pointer-events: none; display: none; }
+.wb-drop::before { content: "Drop here"; position: absolute; left: 50%; top: -11px; transform: translateX(-50%); background: #4f46e5; color: #fff; font: 600 11px system-ui; padding: 2px 8px; border-radius: 99px; }
+.wb-empty { margin: 80px auto; max-width: 420px; text-align: center; padding: 48px 24px; border: 2px dashed #c7d2fe; border-radius: 16px; color: #64748b; font-family: system-ui, sans-serif; }
+.wb-empty strong { display: block; color: #1e293b; font-size: 1.2rem; margin-bottom: 6px; }
