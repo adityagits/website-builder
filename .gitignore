@@ -1,3 +1,38 @@
+# OS / editor
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Dependencies / logs / env (in case you add tooling later)
 node_modules/
 *.log
+.env
+.env.*
+
+# AI assistant local files
+.claude/
+CLAUDE.local.md
+
+# Project planning & progress notes (keep local, not in the repo)
+notes/
+plans/
+PLAN*.md
+*-PLAN.md
+*_PLAN.md
+TODO*.md
+*-TODO.md
+ROADMAP*.md
+NOTES*.md
+*-NOTES.md
+*COMPLETE*.md
+*COMPLETION*.md
+*PROGRESS*.md
+*STATUS*.md
+*SUMMARY*.md
+CHECKLIST*.md
+
+# Local exports / scratch
+exports/
+*.local.*
