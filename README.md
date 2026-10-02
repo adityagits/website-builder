@@ -17,12 +17,12 @@ reduced to the essentials: a **Pages / Components / Theme** left sidebar, a live
 
 ## Run
 
-```bash
-python3 -m http.server 8080   # then open http://localhost:8080
-```
+No installation, no server, no build step. **Open `index.html` in a browser** (double-click it).
 
-Opening `index.html` directly also works; exports then link `theme/theme.css` instead of inlining it.
-No build step, no npm packages.
+Optional: any static server also works (VS Code Live Server, `npx serve`, etc.). When served over `http://`, exported
+pages embed `theme.css`; when opened as a file they link `theme/theme.css`, so keep the `theme/` folder next to exported pages.
+Google Fonts used by some presets need an internet connection. Projects autosave in the browser (localStorage);
+use **Export → Project (.json)** to back up or move them.
 
 ## Project structure
 
