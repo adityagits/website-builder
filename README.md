@@ -33,7 +33,11 @@ use **Export → Project (.json)** to back up or move them.
 | `src/components.js` | Component library. Push to `WB.components` to add your own. |
 | `src/theme-presets.js` | Theme presets (token overrides). |
 | `src/templates.js` | Full-page templates. |
-| `src/builder.js` | Editor: pages, drag & drop, inline editing, inspector, theme editor, history, export. |
+| `src/builder.js` | Editor core: pages, blocks, canvas, inspector, theme editor, history, export. |
+| `src/text-toolbar.js` | Text designer. |
+| `src/nesting.js` | Nested drop zones and element handles. |
+| `src/media.js` | Image library, image tools, resize handle, cropper. |
+| `src/widgets.js` | Video, embed, map, slider, countdown, cart settings. |
 | `builder/` | Editor UI styles (`builder.css`) and canvas-only styles (`canvas.css`); not shipped in exported pages. |
 
 ## Builder features
@@ -45,27 +49,41 @@ use **Export → Project (.json)** to back up or move them.
 - **Canvas** – inline text editing, responsive device preview, preview mode, undo/redo, autosave (localStorage).
 - **Export** – current page, all pages, **a ready-to-host .zip** (pages + theme; needs http serving), theme CSS, or project JSON (import supported).
 
-## Components (58)
+## Components
+
+**65 sections** (Components tab) and **23 elements** (Elements group, droppable into any column, container or card).
 
 | Category | Components |
 |---|---|
-| Navigation | Navbar (mobile hamburger, optional sticky), Announcement bar, Breadcrumbs |
-| Hero | Centered, Split, Background image, With form, Video |
-| Content | Text block, Image + text, Full image, Gallery, Video embed, Tabs, Timeline, Table, Pull quote, Code block |
+| Navigation | Navbar (hamburger, sticky, transparent), Announcement bar, Breadcrumbs |
+| Hero | Centered, Split, Background image, **Video background**, With form, Video |
+| Content | Text block, Image + text, Full image, Gallery, Tabs, Timeline, Table, Pull quote, Code block |
+| Media | **Image slider/carousel** (arrows, dots, autoplay), **Logo marquee**, **Before/After slider**, **Video (YouTube / Vimeo / MP4)**, **HTML / embed code** |
 | Features | Features grid, Feature rows, Stats, Steps, Comparison table, Icon list, Bento grid |
 | Social proof | Logo cloud, Testimonials, Testimonial carousel, Rating summary, Case studies, Team, Awards & badges |
-| Conversion | Pricing, Pricing monthly/yearly toggle, Call to action, Newsletter, Contact form, Multi-step form, Countdown, Lead-magnet banner, FAQ |
-| Contact | Map embed, Opening hours, Social links |
+| Conversion | Pricing, Pricing monthly/yearly toggle, CTA, Newsletter, Contact form, Multi-step form, Countdown, Lead-magnet banner, FAQ, **Popup / modal** |
+| Contact | Map embed (address), Opening hours, Social links |
 | Blog | Post list, Featured post, Author box |
-| E-commerce | Product grid, Product detail, Category cards, Cart summary (static, no backend) |
+| E-commerce | Product grid & detail with working **add-to-cart**, Category cards, **Shopping cart** (browser-stored, checkout link) |
 | Footer | Footer, Footer · Simple |
-| Layout | Columns (2–4), Content + sidebar, Spacer, Divider, Custom HTML |
+| Layout | Columns (1–4, nestable), Empty container, Content + sidebar, Spacer, Divider, Custom HTML |
 
-**Page templates:** Landing page, Business/About, Portfolio, Blog home, Online shop, Pricing page (`src/templates.js`).
-**My sections:** save any section with ★ Save and reuse it from the Components tab (stored in your browser).
+**Elements** (drag into columns/containers): Heading 1–3, Paragraph, Lead, Bullet list, Button, Image, Video, Card, Icon box, Quote, Badge, Code, Divider, Spacer, 2/3 columns, Embed code, Map, Social links, Cart button, Before/After.
 
-### Still planned
-Nested drag-and-drop containers, image library, transparent navbar, popup/modal, before/after slider, real cart/checkout (needs a backend).
+**Page templates:** Landing, Business/About, Portfolio, Blog home, Online shop, Pricing (`src/templates.js`).
+**My sections:** save any section with ★ Save and reuse it from the Components tab.
+
+## Editing tools
+
+- **Text designer** (bar above the canvas): paragraph / Heading 1–6 / quote, **bold, italic, underline, strikethrough, inline code, subscript, superscript**, link / unlink, bullet & numbered list, alignment, text colour, highlight, font family, size, line height, clear formatting.
+- **Nested drag & drop:** drop elements into any column / container / card; hover any nested element for a handle to **move, duplicate, delete or select its parent**.
+- **Images:** upload (auto-resized), **Media library**, **resize handle on the canvas**, width / align / aspect ratio / fit / corners in the inspector, and a **cropper** (free or fixed ratio, rotate, output width and format).
+- **Video:** paste a YouTube, Vimeo or .mp4/.webm link (autoplay / loop / controls). **HTML embed:** paste any iframe or widget code (scripts run on the exported page).
+- **Widgets:** slider autoplay and slides, countdown date, popup auto-open, cart checkout link, column count.
+- **Export:** page HTML, all pages, **zip** (pages + `theme/` + extracted `assets/` images), theme.css, project JSON.
+
+## Phase status
+Phases 1–5 of the roadmap are implemented. Not possible without a server: real payment processing (use a payment-link URL as the cart checkout link) and form submission handling (point the form `action` at your form service).
 
 ## Responsive
 - **Exported pages** are mobile-first responsive (grids collapse, navbar becomes a hamburger menu).

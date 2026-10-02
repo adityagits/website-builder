@@ -11,5 +11,5 @@
   { id: "shop", name: "Online shop", desc: "Categories, products, reviews",
     blocks: ["announce", "navbar", "hero-image", "categories", "product-grid", "rating", "newsletter", "footer"] },
   { id: "pricing", name: "Pricing page", desc: "Plans, comparison, FAQ",
-    blocks: ["navbar", "pricing-toggle", "compare", "faq", "cta", "footer"] },
+    blocks: ["navbar", "pricing-toggle", "compare-table", "faq", "cta", "footer"] },
 ];

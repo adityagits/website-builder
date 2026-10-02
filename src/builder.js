@@ -1,7 +1,8 @@
 /* Website Builder core: pages, components, canvas editing, theme, inspector, export. */
 (function () {
   "use strict";
-  const { components: COMPONENTS, componentById: BY_ID, categories: CATEGORIES, presets: PRESETS, templates: TEMPLATES } = window.WB;
+  const { components: COMPONENTS, componentById: BY_ID, categories: CATEGORIES, presets: PRESETS, templates: TEMPLATES, elements: ELEMENTS, elementById: EL_BY_ID } = window.WB;
+  const hooks = { canvasReady: [], afterRender: [], inspectorPicked: [], inspectorBlock: [], panels: [] };
   const STORE = "wb-project-v1";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -87,12 +88,15 @@
   /* --------------------------------------------------------------- canvas */
   const frame = $("#canvas");
   let doc, themeDefaults = {}, dragState = null, indicator;
+  const isElDrag = () => dragState && String(dragState.kind).startsWith("el");
 
   frame.addEventListener("load", () => {
     doc = frame.contentDocument;
     const cs = getComputedStyle(doc.documentElement);
     THEME_FIELDS.forEach((f) => (themeDefaults[f.var] = cs.getPropertyValue(f.var).trim()));
     bindCanvas();
+    indicator = doc.createElement("div"); indicator.className = "wb-drop"; doc.body.appendChild(indicator);
+    hooks.canvasReady.forEach((fn) => fn(doc));
     applyTheme();
     renderAll();
   });
@@ -146,7 +150,7 @@
       w.appendChild(tb);
       w.querySelectorAll("details").forEach((d) => (d.open = true));
       w.querySelectorAll(EDITABLE).forEach((n) => {
-        if (n.closest(".wb-tb") || n.matches(NOEDIT) || n.parentElement.closest("[contenteditable=true]")) return;
+        if (n.closest(".wb-tb") || n.matches(NOEDIT) || n.closest(".wb-embed") || n.parentElement.closest("[contenteditable=true]")) return;
         n.setAttribute("contenteditable", "true"); n.setAttribute("spellcheck", "false");
       });
     }
@@ -161,9 +165,10 @@
     const blocks = page().blocks;
     if (!blocks.length) root.innerHTML = `<div class="wb-empty"><strong>This page is empty</strong>Drag a component from the sidebar, or click one to add it.</div>`;
     blocks.forEach((b) => root.appendChild(makeBlockEl(b)));
-    indicator = doc.createElement("div"); indicator.className = "wb-drop"; doc.body.appendChild(indicator);
     markSelection();
     doc.title = page().title;
+    hooks.afterRender.forEach((fn) => fn());
+    if (state.preview && frame.contentWindow.WBTheme) frame.contentWindow.WBTheme.refresh();
   }
   function markSelection() {
     $$(".wb-block", doc).forEach((w) => w.classList.toggle("is-selected", w.dataset.id === state.selectedId));
@@ -251,13 +256,13 @@
       }
       if (!w) { state.pickedEl = null; select(null); return; }
       // pick element for attribute editing
-      const pick = t.closest("img,a,iframe,.wb-btn,button");
+      const pick = t.closest("img,a,iframe,video,.wb-btn,button,.wb-embed,.wb-video,.wb-map");
       $$(".is-picked", doc).forEach((n) => n.classList.remove("is-picked"));
       state.pickedEl = pick && !pick.closest(".wb-tb") ? pick : null;
       if (state.pickedEl) state.pickedEl.classList.add("is-picked");
       const changed = state.selectedId !== w.dataset.id;
       state.selectedId = w.dataset.id; markSelection();
-      if (changed || state.pickedEl || true) renderInspector();
+      renderInspector();
     });
     doc.addEventListener("focusin", (e) => { const w = e.target.closest(".wb-block"); if (w) editingId = w.dataset.id; });
     doc.addEventListener("focusout", () => { if (editingId) { syncBlock(editingId); } });
@@ -282,14 +287,14 @@
       e.dataTransfer.setDragImage(w, 20, 20);
     });
     doc.addEventListener("dragover", (e) => {
-      if (!dragState) return;
+      if (!dragState || isElDrag()) return;
       e.preventDefault();
       const { top } = dropIndexAt(e.clientY);
       indicator.style.display = "block"; indicator.style.top = Math.max(0, top - 2) + "px";
     });
     doc.addEventListener("dragleave", (e) => { if (!e.relatedTarget && indicator) indicator.style.display = "none"; });
     doc.addEventListener("drop", (e) => {
-      if (!dragState) return;
+      if (!dragState || isElDrag()) return;
       e.preventDefault();
       const { idx } = dropIndexAt(e.clientY), ds = dragState;
       dragState = null; indicator.style.display = "none";
@@ -371,7 +376,7 @@
     const q = state.filter.toLowerCase();
     let html = `<input class="search" id="comp-search" placeholder="Search components…" value="${esc(state.filter)}">`;
     CATEGORIES.forEach((cat) => {
-      const list = COMPONENTS.filter((c) => c.category === cat && (!q || c.label.toLowerCase().includes(q) || cat.toLowerCase().includes(q)));
+      const list = (cat === "Elements" ? ELEMENTS : COMPONENTS).filter((c) => c.category === cat && (!q || c.label.toLowerCase().includes(q) || cat.toLowerCase().includes(q)));
       if (!list.length) return;
       html += `<div class="section-label">${cat}</div><div class="comp-grid">` +
         list.map((c) => `<div class="comp" draggable="true" data-comp="${c.id}" title="Drag onto the page, or click to add"><span class="ic">${c.icon}</span><span class="lb">${esc(c.label)}</span></div>`).join("") + "</div>";
@@ -387,11 +392,11 @@
     const d = e.target.closest("[data-libdel]");
     if (d) { setLib(getLib().filter((l) => l.id !== d.dataset.libdel)); renderComponentsPanel(); return; }
     const c = e.target.closest("[data-comp]");
-    if (c) { addBlock(c.dataset.comp); if (isSmall()) closeDrawers(); }
+    if (c) { c.dataset.comp.startsWith("el:") ? WB.nesting.addClick(c.dataset.comp) : addBlock(c.dataset.comp); if (isSmall()) closeDrawers(); }
   });
   $("#panel-components").addEventListener("dragstart", (e) => {
     const c = e.target.closest("[data-comp]"); if (!c) return;
-    dragState = { kind: "new", type: c.dataset.comp };
+    dragState = c.dataset.comp.startsWith("el:") ? { kind: "el-new", html: EL_BY_ID[c.dataset.comp].html() } : { kind: "new", type: c.dataset.comp };
     e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", c.dataset.comp);
   });
   $("#panel-components").addEventListener("dragend", () => { dragState = null; if (indicator) indicator.style.display = "none"; });
@@ -459,17 +464,14 @@
     if (p) {
       const tag = p.tagName.toLowerCase();
       html = `<div class="picked-box"><div class="section-label" style="margin-top:0">Selected ${tag === "a" ? "link" : tag}</div>` +
-        (tag === "img" ? `<div class="field"><label>Image URL</label><input type="text" data-attr="src" value="${esc(p.getAttribute("src").startsWith("data:") ? "" : p.getAttribute("src"))}" placeholder="https://…"></div>
-          <div class="field"><label>Upload image</label><input type="file" id="img-upload" accept="image/*"></div>
-          <div class="field"><label>Alt text</label><input type="text" data-attr="alt" value="${esc(p.getAttribute("alt"))}"></div>` : "") +
-        (tag === "iframe" ? `<div class="field"><label>Embed URL</label><input type="text" data-attr="src" value="${esc(p.getAttribute("src"))}"></div>` : "") +
         (tag === "a" || tag === "button" ? (tag === "a" ? `<div class="field"><label>Link (URL, #anchor or page.html)</label><input type="text" data-attr="href" list="page-links" value="${esc(p.getAttribute("href"))}">
           <datalist id="page-links">${state.project.pages.map((x) => `<option value="${esc(x.slug)}.html">`).join("")}</datalist></div>
           <label class="row"><input type="checkbox" id="in-blank" ${p.target === "_blank" ? "checked" : ""}> Open in new tab</label>` : "") : "") +
         (p.classList.contains("wb-btn") ? `<div class="field" style="margin-top:8px"><label>Button style</label><select id="in-btnstyle">${[["", "Primary"], ["wb-btn--secondary", "Secondary"], ["wb-btn--outline", "Outline"], ["wb-btn--ghost", "Ghost"]].map(([c, l]) => `<option value="${c}" ${(c ? p.classList.contains(c) : !/wb-btn--(secondary|outline|ghost)/.test(p.className)) ? "selected" : ""}>${l}</option>`).join("")}</select></div>` : "") +
-        `</div>` + html;
+        hooks.inspectorPicked.map((fn) => fn({ p, sec, b, w })).join("") + `</div>` + html;
     }
-    if (sec.classList.contains("wb-nav")) html += `<label class="row" style="margin-bottom:8px"><input type="checkbox" id="in-sticky" ${sec.hasAttribute("data-sticky") ? "checked" : ""}> Sticky to top (on exported page)</label>`;
+    if (sec.classList.contains("wb-nav")) html += `<label class="row" style="margin-bottom:6px"><input type="checkbox" id="in-sticky" ${sec.hasAttribute("data-sticky") ? "checked" : ""}> Sticky to top</label><label class="row" style="margin-bottom:8px"><input type="checkbox" id="in-transparent" ${sec.hasAttribute("data-transparent") ? "checked" : ""}> Transparent, overlaid on first section</label><p class="hint">Sticky / transparent show on the exported page and in Preview.</p>`;
+    html += hooks.inspectorBlock.map((fn) => fn({ p, sec, b, w })).join("");
     html += `<div class="btn-row"><button class="btn sm" data-bact="star" title="Save to My sections">★ Save</button><button class="btn sm" data-bact="html">&lt;/&gt; Edit HTML</button><button class="btn sm" data-bact="up">↑</button><button class="btn sm" data-bact="down">↓</button><button class="btn sm" data-bact="dup">Duplicate</button><button class="btn sm danger" data-bact="del">Delete</button></div>`;
     el.innerHTML = html;
   }
@@ -507,13 +509,9 @@
   $("#inspector").addEventListener("change", (e) => {
     const t = e.target, p = state.pickedEl;
     if (t.id === "in-sticky") setSectionAttr("sticky", t.checked ? "1" : "");
+    else if (t.id === "in-transparent") setSectionAttr("transparent", t.checked ? "1" : "");
     else if (t.id === "in-blank" && p) { t.checked ? (p.target = "_blank") && p.setAttribute("rel", "noopener") : (p.removeAttribute("target"), p.removeAttribute("rel")); syncBlock(state.selectedId); flushEdit(); }
     else if (t.id === "in-btnstyle" && p) { p.className = p.className.replace(/\s*wb-btn--(secondary|outline|ghost)/g, ""); if (t.value) p.classList.add(t.value); syncBlock(state.selectedId); flushEdit(); }
-    else if (t.id === "img-upload" && p && t.files[0]) {
-      const fr = new FileReader();
-      fr.onload = () => { p.setAttribute("src", fr.result); syncBlock(state.selectedId); flushEdit(); renderInspector(); toast("Image embedded in page (data URL)"); };
-      fr.readAsDataURL(t.files[0]);
-    }
   });
 
   function openHtmlEditor(id) {
@@ -590,7 +588,17 @@ ${js != null ? `<script>\n${js}\n</script>` : `<script src="theme/theme.js"></sc
     const css = await fetchThemeSource(), js = await fetchText("theme/theme.js");
     if (css == null || js == null) { toast("Zip needs the builder served over http(s). Use 'All pages' instead, or serve the folder."); return; }
     const files = [];
-    for (const p of state.project.pages) files.push({ name: p.slug + ".html", data: await buildPage(p, true) });
+    const assets = new Map();   // data URI -> assets/img-N.ext (keeps exported HTML small and cacheable)
+    const extract = (html) => html.replace(/data:image\/(png|jpe?g|webp|gif);base64,([A-Za-z0-9+/=]+)/g, (m, ext, b64) => {
+      if (!assets.has(m)) {
+        const bin = atob(b64), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        assets.set(m, { name: `assets/img-${assets.size + 1}.${ext === "jpeg" ? "jpg" : ext}`, data: u8 });
+      }
+      return assets.get(m).name;
+    });
+    for (const p of state.project.pages) files.push({ name: p.slug + ".html", data: extract(await buildPage(p, true)) });
+    assets.forEach((v) => files.push(v));
     files.push({ name: "theme/theme.css", data: css + "\n/* ---- project overrides ---- */\n" + themeCss() + "\n" + (state.project.customCss || "") + "\n" });
     files.push({ name: "theme/theme.js", data: js });
     const a = document.createElement("a"); a.href = URL.createObjectURL(makeZip(files));
@@ -647,14 +655,14 @@ ${js != null ? `<script>\n${js}\n</script>` : `<script src="theme/theme.js"></sc
   function setTab(t) {
     state.tab = t; $$("#left-tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
     $$("#left-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === t));
-    ["pages", "components", "theme"].forEach((n) => ($("#panel-" + n).hidden = n !== t));
+    ["pages", "components", "media", "theme"].forEach((n) => ($("#panel-" + n).hidden = n !== t));
   }
   let toastT;
   function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2400); }
 
   function renderAll() {
     $("#project-name").value = state.project.name;
-    renderPagesPanel(); renderComponentsPanel(); renderThemePanel(); renderCanvas(); renderInspector(); updateHistoryButtons();
+    renderPagesPanel(); renderComponentsPanel(); renderThemePanel(); hooks.panels.forEach((fn) => fn()); renderCanvas(); renderInspector(); updateHistoryButtons();
   }
   const isSmall = () => window.matchMedia("(max-width: 960px)").matches;
   function closeDrawers() { document.body.classList.remove("show-left", "show-right"); }
@@ -667,6 +675,26 @@ ${js != null ? `<script>\n${js}\n</script>` : `<script src="theme/theme.js"></sc
   $$("button[title]").forEach((b) => !b.getAttribute("aria-label") && b.setAttribute("aria-label", b.title));
   $("#left-tabs").setAttribute("role", "tablist");
   $$("#left-tabs button").forEach((b) => b.setAttribute("role", "tab"));
+  /* ------------------------------------------------------------- public API */
+  window.WB.hooks = hooks;
+  window.WB.api = {
+    state, frame, page, blockById, wrapperOf, syncBlock, flushEdit, commit, commitLater, renderInspector, renderCanvas, markSelection,
+    toast, uid, esc, select, addBlock, cleanHTML, setTab, isSmall, closeDrawers, themeCss, googleFontsUrl, makeBlock,
+    get doc() { return doc; },
+    getDrag: () => dragState, setDrag: (d) => { dragState = d; },
+    EDITABLE, NOEDIT,
+    addBlockHTML(html, index) {
+      flushEdit();
+      const blocks = page().blocks;
+      if (index == null) { const i = blocks.findIndex((b) => b.id === state.selectedId); index = i >= 0 ? i + 1 : blocks.length; }
+      const b = { id: uid(), type: "custom", html: html.trim() };
+      blocks.splice(index, 0, b); state.selectedId = b.id; state.pickedEl = null;
+      renderCanvas(); renderInspector(); commit(); return b;
+    },
+    /** re-read a block after the DOM was changed programmatically, then rebuild the canvas */
+    mutated(id) { syncBlock(id); flushEdit(); const keep = state.selectedId; renderCanvas(); state.selectedId = keep; markSelection(); renderInspector(); },
+    dropIndexAt,
+  };
   setDevice("desktop"); setTab("pages");
   window.addEventListener("beforeunload", () => { try { flushEdit(); } catch (e) {} });
 })();

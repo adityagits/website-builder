@@ -45,14 +45,17 @@
     <nav class="tabs" id="left-tabs">
       <button data-tab="pages" class="active">Pages</button>
       <button data-tab="components">Components</button>
+      <button data-tab="media">Media</button>
       <button data-tab="theme">Theme</button>
     </nav>
     <div class="panel" id="panel-pages"></div>
     <div class="panel" id="panel-components" hidden></div>
+    <div class="panel" id="panel-media" hidden></div>
     <div class="panel" id="panel-theme" hidden></div>
   </aside>
 
   <main id="stage">
+    <div id="textbar" role="toolbar" aria-label="Text formatting"></div>
     <div id="frame-wrap"><iframe id="canvas" title="Page canvas"></iframe></div>
   </main>
 
@@ -73,5 +76,9 @@
   <script src="src/templates.js"></script>
   <script src="src/theme-presets.js"></script>
   <script src="src/builder.js"></script>
+  <script src="src/text-toolbar.js"></script>
+  <script src="src/nesting.js"></script>
+  <script src="src/media.js"></script>
+  <script src="src/widgets.js"></script>
 </body>
 </html>

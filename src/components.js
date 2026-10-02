@@ -17,7 +17,7 @@
   WB.placeholder = ph;
 
   WB.categories = [
-    "Navigation", "Hero", "Content", "Features", "Social proof", "Conversion", "Contact", "Blog", "E-commerce", "Footer", "Layout",
+    "Elements", "Navigation", "Hero", "Content", "Media", "Features", "Social proof", "Conversion", "Contact", "Blog", "E-commerce", "Footer", "Layout",
   ];
 
   const C = [];
@@ -92,11 +92,6 @@
     <img src="${ph(480, 360, "1")}" alt="Gallery 1"><img src="${ph(480, 360, "2", "#fce7f3", "#fbcfe8")}" alt="Gallery 2"><img src="${ph(480, 360, "3", "#dcfce7", "#bbf7d0")}" alt="Gallery 3">
     <img src="${ph(480, 360, "4", "#fef3c7", "#fde68a")}" alt="Gallery 4"><img src="${ph(480, 360, "5")}" alt="Gallery 5"><img src="${ph(480, 360, "6", "#e0f2fe", "#bae6fd")}" alt="Gallery 6">
   </div>
-</div></section>`);
-
-  add("video", "Video embed", "Content", "▶", () => `
-<section class="wb-section" data-width="narrow"><div class="wb-container">
-  <div class="wb-video"><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" allowfullscreen loading="lazy"></iframe></div>
 </div></section>`);
 
   add("features-grid", "Features grid", "Features", "▥", () => `
@@ -256,10 +251,13 @@
   /* ---- Content extras ---- */
   add("columns", "Columns (2–4)", "Layout", "▥", () => `
 <section class="wb-section"><div class="wb-container"><div class="wb-cols" data-cols="3">
-  <div><h3>Column one</h3><p>Write anything here. Change the column count with the inspector or Edit HTML (data-cols).</p></div>
-  <div><h3>Column two</h3><p>Columns stack on mobile automatically.</p></div>
-  <div><h3>Column three</h3><p>Use them for text, lists or buttons.</p></div>
+  <div class="wb-col"><h3>Column one</h3><p>Drag elements from the Elements group into any column.</p></div>
+  <div class="wb-col"><h3>Column two</h3><p>Columns stack on mobile automatically.</p></div>
+  <div class="wb-col"><h3>Column three</h3><p>Change the column count in the inspector.</p></div>
 </div></div></section>`);
+
+  add("container", "Empty container", "Layout", "▢", () => `
+<section class="wb-section"><div class="wb-container"></div></section>`);
 
   add("tabs", "Tabs", "Content", "⊟", () => `
 <section class="wb-section"><div class="wb-container"><div class="wb-tabs">
@@ -294,7 +292,7 @@
 import { hello } from "my-package";
 hello("world");</pre></div></section>`);
 
-  add("compare", "Comparison table", "Features", "⇄", () => `
+  add("compare-table", "Comparison table", "Features", "⇄", () => `
 <section class="wb-section" data-bg="alt"><div class="wb-container">
   <div class="wb-header"><h2>Why choose us</h2></div>
   <div class="wb-table-wrap" style="background:var(--wb-bg)"><table class="wb-table"><thead><tr><th></th><th>Us</th><th>Others</th></tr></thead>
@@ -408,14 +406,14 @@ hello("world");</pre></div></section>`);
 <section class="wb-section"><div class="wb-container">
   <div class="wb-header"><h2>Featured products</h2></div>
   <div class="wb-grid" data-cols="4">
-    ${[["Classic tee", "$24", "$30"], ["Canvas tote", "$18", ""], ["Ceramic mug", "$14", ""], ["Sneakers", "$79", "$95"]].map(([n, pr, old], i) => `<div class="wb-product"><img src="${ph(480, 480, n, ["#e0e7ff", "#fef3c7", "#dcfce7", "#fce7f3"][i], "#c7d2fe")}" alt="${n}"><h3>${n}</h3><div class="wb-product__price">${pr}${old ? `<s>${old}</s>` : ""}</div><a class="wb-btn wb-btn--outline" href="#">Add to cart</a></div>`).join("\n    ")}
+    ${[["Classic tee", "$24", "$30"], ["Canvas tote", "$18", ""], ["Ceramic mug", "$14", ""], ["Sneakers", "$79", "$95"]].map(([n, pr, old], i) => `<div class="wb-product"><img src="${ph(480, 480, n, ["#e0e7ff", "#fef3c7", "#dcfce7", "#fce7f3"][i], "#c7d2fe")}" alt="${n}"><h3>${n}</h3><div class="wb-product__price">${pr}${old ? `<s>${old}</s>` : ""}</div><a class="wb-btn wb-btn--outline" href="#" data-wb-add data-name="${n}" data-price="${pr.replace("$", "")}">Add to cart</a></div>`).join("\n    ")}
   </div>
 </div></section>`);
 
   add("product-detail", "Product detail", "E-commerce", "🧾", () => `
 <section class="wb-section"><div class="wb-container wb-split">
   <img class="wb-media" src="${ph(640, 640, "Product")}" alt="Product">
-  <div><span class="wb-badge">In stock</span><h1 style="font-size:2.2rem;margin-top:1rem">Product name</h1><div class="wb-stars">★★★★★ <span class="wb-muted wb-small">(128 reviews)</span></div><p class="wb-product__price" style="font-size:1.8rem;margin-top:1rem">$49.00</p><p class="wb-muted">A concise description of the product, its materials and what makes it special.</p><div class="wb-actions"><a class="wb-btn" href="#">Add to cart</a><a class="wb-btn wb-btn--ghost" href="#">Wishlist</a></div></div>
+  <div><span class="wb-badge">In stock</span><h1 style="font-size:2.2rem;margin-top:1rem">Product name</h1><div class="wb-stars">★★★★★ <span class="wb-muted wb-small">(128 reviews)</span></div><p class="wb-product__price" style="font-size:1.8rem;margin-top:1rem">$49.00</p><p class="wb-muted">A concise description of the product, its materials and what makes it special.</p><div class="wb-actions"><a class="wb-btn" href="#" data-wb-add data-name="Product name" data-price="49">Add to cart</a><a class="wb-btn wb-btn--ghost" href="cart.html">View cart (<span data-wb-cart-count>0</span>)</a></div></div>
 </div></section>`);
 
   add("categories", "Category cards", "E-commerce", "▤", () => `
@@ -423,13 +421,88 @@ hello("world");</pre></div></section>`);
   ${["Women", "Men", "Accessories"].map((n, i) => `<a class="wb-category" href="#" style="text-decoration:none"><img src="${ph(480, 600, " ", ["#6366f1", "#0ea5e9", "#f59e0b"][i], "#1e293b")}" alt="${n}"><h3>${n}</h3></a>`).join("\n  ")}
 </div></div></section>`);
 
-  add("cart-summary", "Cart summary", "E-commerce", "🛒", () => `
-<section class="wb-section" data-width="narrow"><div class="wb-container"><div class="wb-card"><h3>Order summary</h3>
-  <ul class="wb-hours"><li><span>Classic tee × 2</span><span>$48.00</span></li><li><span>Shipping</span><span>$5.00</span></li><li><strong>Total</strong><strong>$53.00</strong></li></ul>
-  <a class="wb-btn wb-btn--block" href="#" style="margin-top:1.25rem">Checkout</a></div></div></section>`);
+  add("cart-summary", "Shopping cart", "E-commerce", "🛒", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container"><div class="wb-card" data-wb-cart data-checkout=""><h3>Your cart</h3>
+  <div class="wb-cart__items"><div class="wb-cart__row"><img src="${ph(112, 112, "Item")}" alt=""><div><strong>Sample product</strong></div><span>1 × $24.00</span><span></span></div></div>
+  <div class="wb-cart__total"><span>Total</span><span data-wb-cart-total>$24.00</span></div>
+  <a class="wb-btn wb-btn--block" href="#" data-wb-checkout>Checkout</a>
+  <p class="wb-small wb-muted" style="margin:.75rem 0 0">Set the checkout link (payment link or mailto:) in the inspector.</p></div></div></section>`);
 
   add("sidebar-layout", "Content + sidebar", "Layout", "◨", () => `
 <section class="wb-section"><div class="wb-container wb-sidebar-layout"><div><h2>Main content</h2><p>Your article or page content goes here.</p></div><aside class="wb-card"><h3>Sidebar</h3><p class="wb-muted">Links, widgets or a short bio.</p></aside></div></section>`);
+
+
+  /* ---- Media / widgets ---- */
+  add("slider", "Image slider", "Media", "🎞", () => `
+<section class="wb-section"><div class="wb-container"><div class="wb-slider" data-wb-slider data-autoplay="0">
+  <div class="wb-slider__track">
+    ${["Slide one", "Slide two", "Slide three"].map((n, i) => `<figure class="wb-slide"><img src="${ph(1280, 720, n, ["#e0e7ff", "#fce7f3", "#dcfce7"][i], "#c7d2fe")}" alt="${n}"><figcaption>${n} caption</figcaption></figure>`).join("\n    ")}
+  </div>
+  <button class="wb-slider__btn wb-slider__prev" type="button" aria-label="Previous slide">‹</button>
+  <button class="wb-slider__btn wb-slider__next" type="button" aria-label="Next slide">›</button>
+  <div class="wb-slider__dots"></div>
+</div></div></section>`);
+
+  add("marquee", "Logo marquee", "Media", "⇄", () => `
+<section class="wb-section" data-pad="sm"><div class="wb-container"><div class="wb-marquee"><div class="wb-marquee__track">
+  ${["Acme", "Globex", "Initech", "Umbrella", "Hooli", "Stark", "Wayne", "Wonka"].map((n) => `<span>${n}</span>`).join("")}${["Acme", "Globex", "Initech", "Umbrella", "Hooli", "Stark", "Wayne", "Wonka"].map((n) => `<span aria-hidden="true">${n}</span>`).join("")}
+</div></div></div></section>`);
+
+  add("compare", "Before / After", "Media", "◐", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container"><div class="wb-compare" data-wb-compare>
+  <img class="wb-compare__after" src="${ph(1280, 720, "After", "#dcfce7", "#86efac")}" alt="After">
+  <div class="wb-compare__before"><img src="${ph(1280, 720, "Before", "#fee2e2", "#fca5a5")}" alt="Before"></div>
+  <span class="wb-compare__tag" style="left:12px">Before</span><span class="wb-compare__tag" style="right:12px">After</span>
+  <input class="wb-compare__range" type="range" min="0" max="100" value="50" aria-label="Before and after">
+  <span class="wb-compare__handle"></span>
+</div></div></section>`);
+
+  add("popup", "Popup / modal", "Conversion", "◫", () => `
+<section class="wb-section" data-align="center" data-pad="md"><div class="wb-container">
+  <a class="wb-btn" href="#" data-wb-open="promo-popup">Open popup</a>
+</div>
+<div class="wb-modal" id="promo-popup" role="dialog" aria-modal="true" aria-hidden="true"><div class="wb-modal__box"><button class="wb-modal__close" type="button" data-wb-close aria-label="Close">×</button><h3>Special offer</h3><p>Get 20% off your first order. Use code <strong>WELCOME20</strong>.</p><a class="wb-btn" href="#">Claim offer</a></div></div>
+</section>`);
+
+  add("hero-video-bg", "Hero · Video background", "Hero", "🎥", () => `
+<section class="wb-section wb-hero wb-hero--video wb-hero--center" data-pad="xl">
+  <video class="wb-hero__video" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" autoplay muted loop playsinline></video>
+  <div class="wb-container"><h1>Video makes the first impression</h1><p class="wb-lead">Paste any .mp4 / .webm link in the inspector to change the background video.</p><div class="wb-actions"><a class="wb-btn" href="#">Get started</a></div></div>
+</section>`);
+
+  add("video-file", "Video (YouTube / Vimeo / MP4)", "Media", "▶", () => `
+<section class="wb-section" data-width="narrow"><div class="wb-container"><div class="wb-video"><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" allowfullscreen loading="lazy"></iframe></div></div></section>`);
+
+  add("embed", "HTML / embed code", "Media", "⌘", () => `
+<section class="wb-section" data-pad="sm"><div class="wb-container"><div class="wb-embed" data-wb-embed><div style="padding:2rem;border:2px dashed #94a3b8;border-radius:12px;text-align:center;color:#64748b">Paste any embed code (iframe, widget, script, form…) using the inspector.</div></div></div></section>`);
+
+  /* ---- Elements (drop into any column / container / card) ---- */
+  const els = (WB.elements = []);
+  const addEl = (id, label, icon, html) => els.push({ id: "el:" + id, label, category: "Elements", icon, html });
+  addEl("h1", "Heading 1", "H1", () => `<h1>Heading 1</h1>`);
+  addEl("h2", "Heading 2", "H2", () => `<h2>Heading 2</h2>`);
+  addEl("h3", "Heading 3", "H3", () => `<h3>Heading 3</h3>`);
+  addEl("p", "Paragraph", "¶", () => `<p>Write something here. Select text to format it with the toolbar above the canvas.</p>`);
+  addEl("lead", "Lead text", "Aa", () => `<p class="wb-lead">A larger introductory paragraph.</p>`);
+  addEl("list", "Bullet list", "•", () => `<ul><li>First item</li><li>Second item</li><li>Third item</li></ul>`);
+  addEl("button", "Button", "▭", () => `<div class="wb-actions"><a class="wb-btn" href="#">Button</a></div>`);
+  addEl("image", "Image", "🖼", () => `<img class="wb-media" src="${ph(800, 500, "Image")}" alt="Image">`);
+  addEl("video", "Video", "▶", () => `<div class="wb-video"><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" allowfullscreen loading="lazy"></iframe></div>`);
+  addEl("card", "Card", "▢", () => `<div class="wb-card"><h3>Card title</h3><p>Card text goes here.</p></div>`);
+  addEl("iconbox", "Icon box", "★", () => `<div class="wb-card"><span class="wb-icon">★</span><h3>Feature</h3><p>Short description.</p></div>`);
+  addEl("quote", "Quote", "❝", () => `<blockquote class="wb-pullquote">A memorable quote.<cite>— Author</cite></blockquote>`);
+  addEl("badge", "Badge", "◉", () => `<span class="wb-badge">Badge</span>`);
+  addEl("code", "Code", "{ }", () => `<pre class="wb-code wb-editable">console.log("hello");</pre>`);
+  addEl("divider", "Divider", "―", () => `<hr class="wb-divider">`);
+  addEl("spacer", "Spacer", "↕", () => `<div class="wb-spacer"></div>`);
+  addEl("cols2", "2 columns", "▥", () => `<div class="wb-cols" data-cols="2"><div class="wb-col"><p>Column one</p></div><div class="wb-col"><p>Column two</p></div></div>`);
+  addEl("cols3", "3 columns", "▦", () => `<div class="wb-cols" data-cols="3"><div class="wb-col"><p>One</p></div><div class="wb-col"><p>Two</p></div><div class="wb-col"><p>Three</p></div></div>`);
+  addEl("embed", "Embed code", "⌘", () => `<div class="wb-embed" data-wb-embed><div style="padding:1.5rem;border:2px dashed #94a3b8;border-radius:12px;text-align:center;color:#64748b">Embed — edit in the inspector</div></div>`);
+  addEl("map", "Map", "📍", () => `<div class="wb-map"><iframe src="https://www.google.com/maps?q=New+York&output=embed" title="Map" loading="lazy"></iframe></div>`);
+  addEl("social", "Social links", "@", () => `<ul class="wb-social"><li><a href="#">Facebook</a></li><li><a href="#">Instagram</a></li><li><a href="#">LinkedIn</a></li></ul>`);
+  addEl("cart", "Cart button", "🛒", () => `<a class="wb-btn wb-btn--outline" href="cart.html">🛒 Cart (<span data-wb-cart-count>0</span>)</a>`);
+  addEl("compare", "Before / After", "◐", () => `<div class="wb-compare" data-wb-compare><img class="wb-compare__after" src="${ph(1280, 720, "After", "#dcfce7", "#86efac")}" alt="After"><div class="wb-compare__before"><img src="${ph(1280, 720, "Before", "#fee2e2", "#fca5a5")}" alt="Before"></div><span class="wb-compare__tag" style="left:12px">Before</span><span class="wb-compare__tag" style="right:12px">After</span><input class="wb-compare__range" type="range" min="0" max="100" value="50" aria-label="Before and after"><span class="wb-compare__handle"></span></div>`);
+  WB.elementById = Object.fromEntries(els.map((e) => [e.id, e]));
 
   WB.components = C;
   WB.componentById = Object.fromEntries(C.map((c) => [c.id, c]));

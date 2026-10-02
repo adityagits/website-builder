@@ -334,6 +334,51 @@ ul { padding-left: 1.2em; }
 .wb-category img { margin: 0; aspect-ratio: 4/5; border-radius: 0; }
 .wb-category h3 { position: absolute; left: 18px; bottom: 14px; margin: 0; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.5); }
 
+/* 15g. SLIDER, MARQUEE, BEFORE/AFTER, MODAL, EMBED, CART, VIDEO ---------- */
+.wb-slider { position: relative; border-radius: var(--wb-radius); overflow: hidden; background: var(--wb-bg-alt); }
+.wb-slider__track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
+.wb-slider__track::-webkit-scrollbar { display: none; }
+.wb-slide { flex: 0 0 100%; scroll-snap-align: start; margin: 0; position: relative; }
+.wb-slide img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+.wb-slide figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 2.5rem 1.5rem 1.25rem; color: #fff; background: linear-gradient(transparent, rgba(15,23,42,.75)); font-weight: 600; }
+.wb-slider__btn { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.9); color: #0f172a; font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 2; }
+.wb-slider__prev { left: 14px; } .wb-slider__next { right: 14px; }
+.wb-slider__dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; z-index: 2; }
+.wb-slider__dots button { width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 0; background: rgba(255,255,255,.55); cursor: pointer; }
+.wb-slider__dots button.is-active { background: #fff; transform: scale(1.25); }
+.wb-marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+.wb-marquee__track { display: flex; gap: 64px; width: max-content; animation: wb-marquee 28s linear infinite; }
+.wb-marquee__track span { font-family: var(--wb-font-heading); font-size: 1.5rem; font-weight: 800; color: var(--wb-muted); white-space: nowrap; }
+.wb-marquee:hover .wb-marquee__track { animation-play-state: paused; }
+@keyframes wb-marquee { to { transform: translateX(-50%); } }
+.wb-compare { --pos: 50%; position: relative; aspect-ratio: 16/9; overflow: hidden; border-radius: var(--wb-radius); box-shadow: var(--wb-shadow); user-select: none; }
+.wb-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; }
+.wb-compare__before { position: absolute; inset: 0; clip-path: inset(0 calc(100% - var(--pos)) 0 0); }
+.wb-compare__range { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; margin: 0; }
+.wb-compare__handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 3px; background: #fff; transform: translateX(-50%); pointer-events: none; box-shadow: 0 0 8px rgba(0,0,0,.4); }
+.wb-compare__handle::after { content: "↔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 40px; height: 40px; border-radius: 50%; background: #fff; color: #0f172a; display: grid; place-items: center; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.wb-compare__tag { position: absolute; top: 12px; padding: .2em .7em; border-radius: 999px; background: rgba(15,23,42,.7); color: #fff; font-size: .8rem; z-index: 1; }
+.wb-modal { position: fixed; inset: 0; display: none; place-items: center; background: rgba(15,23,42,.6); z-index: 1000; padding: 20px; }
+.wb-modal.is-open { display: grid; }
+.wb-modal__box { position: relative; background: var(--wb-bg); color: var(--wb-text); border-radius: var(--wb-radius); padding: 36px; max-width: 520px; width: 100%; box-shadow: 0 30px 80px rgba(0,0,0,.4); }
+.wb-modal__close { position: absolute; top: 10px; right: 12px; width: 36px; height: 36px; border: 0; background: none; font-size: 1.6rem; cursor: pointer; color: var(--wb-muted); }
+.wb-embed { width: 100%; }
+.wb-embed iframe { width: 100%; border: 0; }
+.wb-video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.wb-hero--video { position: relative; color: #fff; overflow: hidden; background: #0f172a; }
+.wb-hero--video::before { content: ""; position: absolute; inset: 0; background: rgba(15,23,42,.6); z-index: 1; }
+.wb-hero--video .wb-hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.wb-hero--video > .wb-container { position: relative; z-index: 2; }
+.wb-hero--video .wb-lead { color: rgba(255,255,255,.85); }
+.wb-section[data-transparent] { position: absolute; top: 0; left: 0; right: 0; z-index: 40; background: transparent; border-bottom-color: transparent; color: #fff; }
+.wb-section[data-transparent] .wb-nav__brand, .wb-section[data-transparent] .wb-nav__links a:not(.wb-btn), .wb-section[data-transparent] .wb-nav__toggle { color: #fff; }
+.wb-cart__row { display: grid; grid-template-columns: 56px 1fr auto auto; gap: 14px; align-items: center; padding: .8rem 0; border-bottom: 1px solid var(--wb-border); }
+.wb-cart__row img { width: 56px; height: 56px; object-fit: cover; border-radius: calc(var(--wb-radius) / 2); }
+.wb-cart__row button { border: 0; background: none; color: var(--wb-muted); font-size: 1.2rem; cursor: pointer; }
+.wb-cart__total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.15rem; padding: 1rem 0; }
+.wb-cart__empty { text-align: center; color: var(--wb-muted); padding: 1.5rem 0; }
+.wb-col { min-width: 0; }
+
 /* sidebar layout */
 .wb-sidebar-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 48px; }
 
@@ -354,5 +399,8 @@ ul { padding-left: 1.2em; }
   .wb-nav__links li { border-top: 1px solid var(--wb-border); padding: .7rem 0; }
   .wb-nav.is-open .wb-nav__links { display: flex; }
   .wb-author { flex-direction: column; text-align: center; }
+  .wb-slider__btn { width: 36px; height: 36px; }
+  .wb-cart__row { grid-template-columns: 48px 1fr auto; }
+  .wb-cart__row > :nth-child(3) { display: none; }
   .wb-footer-grid { grid-template-columns: 1fr; }
 }
