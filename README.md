@@ -15,14 +15,36 @@ The project has two goals:
 It is inspired by popular WordPress page builders (Elementor, Beaver Builder, Divi, Gutenberg, Brizy, Bricks, etc.),
 reduced to the essentials: a **Pages / Components / Theme** left sidebar, a live canvas, and an inspector on the right.
 
-## Run
+## How to run
 
-No installation, no server, no build step. **Open `index.html` in a browser** (double-click it).
+**Requirements:** any modern browser (Chrome, Edge, Firefox, Safari). No Node, PHP, Python or database needed.
 
-Optional: any static server also works (VS Code Live Server, `npx serve`, etc.). When served over `http://`, exported
-pages embed `theme.css`; when opened as a file they link `theme/theme.css`, so keep the `theme/` folder next to exported pages.
-Google Fonts used by some presets need an internet connection. Projects autosave in the browser (localStorage);
-use **Export → Project (.json)** to back up or move them.
+**Option 1 — just open it (simplest)**
+1. Download or clone this repository.
+2. Double-click `index.html` (or drag it into a browser window).
+3. Start building: add components from the left sidebar, click text to edit, use the inspector on the right.
+
+**Option 2 — local server (recommended for the zip export)**
+Use any static server. Pick one you already have:
+```bash
+# VS Code: install "Live Server", right-click index.html -> Open with Live Server
+npx serve .                    # Node
+python3 -m http.server 8080    # Python, then open http://localhost:8080
+```
+
+**Option 3 — host it online**
+Upload the whole folder to any static host (GitHub Pages, Netlify, Vercel, any web hosting). It is plain HTML/CSS/JS.
+
+**Using it**
+1. **Pages** tab: add pages or start from a template. **Components** tab: drag sections and elements onto the canvas. **Media** tab: upload images. **Theme** tab: change colours, fonts and spacing.
+2. Click **Preview** to test menus, sliders and the cart. Use **Undo/Redo** at the top.
+3. **Export ▾** → Website (.zip) for a ready-to-host site, or a single page `.html`.
+4. Upload the exported files to your host. Keep the `theme/` and `assets/` folders next to the HTML files.
+
+**Notes**
+- Your work autosaves in the browser (localStorage). Use **Export → Project (.json)** to back it up or move it to another browser/computer.
+- The zip export and inlined CSS need the builder served over `http://` (Option 2/3). When opened as a plain file, use "All pages (.html files)" instead, and keep the `theme/` folder beside them.
+- Google Fonts in some theme presets need an internet connection.
 
 ## Project structure
 
